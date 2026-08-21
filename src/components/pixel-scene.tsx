@@ -18,6 +18,7 @@ import { LayoutInfoModal } from "@/components/game-ui/layout-info-modal";
 import { InfoEditor } from "@/components/game-ui/info-editor";
 import { DrawerEditor } from "@/components/game-ui/drawer-editor";
 import { CollectEditor } from "@/components/game-ui/collect-editor";
+import { SceneLoadingScreen } from "@/components/game-ui/scene-loading-screen";
 import { useAuth } from "@/lib/auth/use-auth";
 import { ItemInfoModal } from "@/components/game-ui/item-info-modal";
 import { SceneMapOverlay } from "@/components/game-ui/scene-map-overlay";
@@ -49,6 +50,7 @@ export function PixelScene() {
   const auth = useAuth();
 
   const [isReady, setIsReady] = useState(false);
+  const [loadProgress, setLoadProgress] = useState(0);
   const [isRainEnabled, setIsRainEnabled] = useState(true);
   const [isLightingEnabled, setIsLightingEnabled] = useState(true);
   const [isLayoutModeEnabled, setIsLayoutModeEnabled] = useState(false);
@@ -212,6 +214,7 @@ export function PixelScene() {
 
   useEffect(() => {
     setIsReady(false);
+    setLoadProgress(0);
 
     const host = hostRef.current;
     if (!host) return;
@@ -222,6 +225,7 @@ export function PixelScene() {
 
     const controller = new PixelSceneController({
       sceneId: currentScene.id,
+      onLoadProgress: (p) => setLoadProgress(p),
       runtimeSceneBackgroundSrc:
         currentScene.id === "scene-builder"
           ? (activeBuilderScene?.backgroundSrc ?? null)
@@ -602,6 +606,8 @@ export function PixelScene() {
           className={`scene-canvas-host${isReady ? " is-ready" : ""}`}
           tabIndex={0}
         />
+
+        <SceneLoadingScreen isVisible={!isReady} progress={loadProgress} />
       </div>
 
       {auth.user ? (
