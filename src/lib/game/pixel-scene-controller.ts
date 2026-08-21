@@ -335,6 +335,7 @@ export class PixelSceneController {
   private scaledSceneRoot: Container | null = null;
   private environmentSpritesById = new Map<string, Sprite>();
   private layoutEditableSpritesById = new Map<string, LayoutEditableSpriteRuntime>();
+  private collectedLayoutSpriteIds = new Set<string>();
   private customLightsById = new Map<string, CustomLightRuntime>();
   private actorEntities: UpdatableActor[] = [];
   private environmentAnimators: UpdatableActor[] = [];
@@ -1820,7 +1821,7 @@ export class PixelSceneController {
         return false;
       }
 
-      if (icon.kind === "collect" && !interaction.collectible) {
+      if (icon.kind === "collect" && (!interaction.collectible || this.collectedLayoutSpriteIds.has(menuId))) {
         return false;
       }
 
@@ -2634,6 +2635,7 @@ export class PixelSceneController {
       return;
     }
 
+    this.collectedLayoutSpriteIds.add(objectId);
     entry.sprite.visible = false;
     entry.sprite.eventMode = "none";
   }
