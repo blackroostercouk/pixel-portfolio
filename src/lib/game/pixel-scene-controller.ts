@@ -2625,6 +2625,17 @@ export class PixelSceneController {
     sprite.eventMode = "none";
   }
 
+  public consumeLayoutSprite(objectId: string) {
+    const entry = this.layoutEditableSpritesById.get(objectId);
+
+    if (!entry) {
+      return;
+    }
+
+    entry.sprite.visible = false;
+    entry.sprite.eventMode = "none";
+  }
+
   private showActionMenuIcons(menuId: string) {
     this.actionMenuIconsState = "revealing";
     this.actionMenuIconsElapsedMs = 0;

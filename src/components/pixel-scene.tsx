@@ -228,6 +228,11 @@ export function PixelScene() {
           ? (activeBuilderScene?.sprites.map((s) => ({ ...s, layer: s.layer ?? "environmentLayer" })) ?? [])
           : activeSceneOverride?.sprites?.map((s) => ({ ...s, layer: s.layer ?? "environmentLayer" })),
       onActionMenuAction: (objectId, actionId) => {
+        if (actionId.endsWith("-generic-collect")) {
+          controllerRef.current?.consumeLayoutSprite(objectId);
+          return;
+        }
+
         if (actionId.endsWith("-generic-info")) {
           const snapshot =
             layout.latestLayoutSpritesRef.current.find((s) => s.id === objectId) ??
