@@ -17,6 +17,7 @@ import { LayoutPanel } from "@/components/game-ui/layout-panel";
 import { LayoutInfoModal } from "@/components/game-ui/layout-info-modal";
 import { InfoEditor } from "@/components/game-ui/info-editor";
 import { DrawerEditor } from "@/components/game-ui/drawer-editor";
+import { CollectEditor } from "@/components/game-ui/collect-editor";
 import { useAuth } from "@/lib/auth/use-auth";
 import { ItemInfoModal } from "@/components/game-ui/item-info-modal";
 import { SceneMapOverlay } from "@/components/game-ui/scene-map-overlay";
@@ -54,6 +55,7 @@ export function PixelScene() {
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isInfoEditorOpen, setIsInfoEditorOpen] = useState(false);
   const [isDrawerEditorOpen, setIsDrawerEditorOpen] = useState(false);
+  const [isCollectEditorOpen, setIsCollectEditorOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedInfoEditorStage, setSelectedInfoEditorStage] =
     useState<SceneInfoModalStageId>("normal");
@@ -577,9 +579,7 @@ export function PixelScene() {
             onAddLight={() => void layout.addRuntimeLightToScene()}
             onOpenInfoEditor={() => setIsInfoEditorOpen(true)}
             onOpenDrawerEditor={() => setIsDrawerEditorOpen(true)}
-            layoutInfoImageOptions={layoutInfoImageOptions}
-            isUploadingCollectIcon={isUploadingCollectIcon}
-            onCollectIconUpload={handleCollectIconUpload}
+            onOpenCollectEditor={() => setIsCollectEditorOpen(true)}
           />
         ) : null}
 
@@ -785,6 +785,16 @@ export function PixelScene() {
         editor={drawerEditor}
         onClose={() => setIsDrawerEditorOpen(false)}
         onTitleChange={(title) => updateSelectedDrawerConfig({ title: title || undefined })}
+      />
+
+      <CollectEditor
+        isOpen={isCollectEditorOpen}
+        interaction={selectedLayoutSpriteInteraction}
+        layoutInfoImageOptions={layoutInfoImageOptions}
+        isUploadingCollectIcon={isUploadingCollectIcon}
+        controllerRef={controllerRef}
+        onClose={() => setIsCollectEditorOpen(false)}
+        onCollectIconUpload={handleCollectIconUpload}
       />
 
       <SceneMapOverlay

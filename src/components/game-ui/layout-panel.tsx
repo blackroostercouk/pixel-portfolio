@@ -121,11 +121,7 @@ type LayoutPanelProps = {
   // Editors
   onOpenInfoEditor: () => void;
   onOpenDrawerEditor: () => void;
-
-  // Collectible item settings
-  layoutInfoImageOptions: string[];
-  isUploadingCollectIcon: boolean;
-  onCollectIconUpload: (event: ChangeEvent<HTMLInputElement>) => void;
+  onOpenCollectEditor: () => void;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -189,9 +185,7 @@ export function LayoutPanel({
   onAddLight,
   onOpenInfoEditor,
   onOpenDrawerEditor,
-  layoutInfoImageOptions,
-  isUploadingCollectIcon,
-  onCollectIconUpload,
+  onOpenCollectEditor,
 }: LayoutPanelProps) {
   const isBuilderScene = currentSceneId === "scene-builder";
 
@@ -590,55 +584,11 @@ export function LayoutPanel({
                   ) : null}
 
                   {selectedLayoutSpriteInteraction?.clickable && selectedLayoutSpriteInteraction?.collectible ? (
-                    <>
-                      <label className="layout-panel__field">
-                        <span className="layout-panel__label">Collect Item Name</span>
-                        <input
-                          className="layout-panel__input"
-                          type="text"
-                          value={selectedLayoutSpriteLiveInteraction?.collectLabel ?? ""}
-                          placeholder="e.g. Magic Key"
-                          onChange={(e) =>
-                            controllerRef.current?.updateSelectedLayoutSpriteInteraction({
-                              collectLabel: e.target.value || undefined,
-                            })
-                          }
-                        />
-                      </label>
-
-                      <label className="layout-panel__field">
-                        <span className="layout-panel__label">Collect Item Icon</span>
-                        <select
-                          className="layout-panel__input"
-                          value={selectedLayoutSpriteLiveInteraction?.collectIconSrc ?? ""}
-                          onChange={(e) =>
-                            controllerRef.current?.updateSelectedLayoutSpriteInteraction({
-                              collectIconSrc: e.target.value || undefined,
-                            })
-                          }
-                        >
-                          <option value="">Use sprite image</option>
-                          {layoutInfoImageOptions.map((src) => (
-                            <option key={src} value={src}>
-                              {src.split("/").pop()}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-
-                      <label className="layout-panel__field">
-                        <span className="layout-panel__label">Upload Icon Image</span>
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          onChange={onCollectIconUpload}
-                          disabled={isUploadingCollectIcon}
-                        />
-                        {isUploadingCollectIcon ? (
-                          <span className="layout-panel__hint">Uploading...</span>
-                        ) : null}
-                      </label>
-                    </>
+                    <div className="layout-panel__actions">
+                      <button type="button" className="layout-panel__action" onClick={onOpenCollectEditor}>
+                        Edit Collect Item
+                      </button>
+                    </div>
                   ) : null}
                 </LayoutPanelSection>
 
