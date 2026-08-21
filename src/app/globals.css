@@ -161,7 +161,7 @@ a {
 .scene-controls__actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
 }
 
 .scene-select__label {
@@ -214,11 +214,11 @@ a {
 
 .scene-icon-trigger {
   appearance: none;
-  width: 42px;
-  height: 42px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  border: 2px solid rgba(155, 112, 51, 0.92);
-  border-radius: 8px;
+  border: 1.5px solid rgba(155, 112, 51, 0.92);
+  border-radius: 6px;
   background:
     linear-gradient(180deg, rgba(31, 24, 18, 0.96), rgba(16, 12, 8, 0.96));
   color: #f3d8a8;
@@ -255,8 +255,8 @@ a {
 }
 
 .scene-icon-trigger svg {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   display: block;
 }
 
