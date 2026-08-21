@@ -1796,6 +1796,7 @@ export class PixelSceneController {
       collectible: layoutConfig?.collectible ?? baseConfig.collectible,
       collectLabel: layoutConfig?.collectLabel,
       collectIconSrc: layoutConfig?.collectIconSrc,
+      collectTargetObjectId: layoutConfig?.collectTargetObjectId,
       bubbleMessage: layoutConfig?.bubbleMessage,
       infoTitle: layoutConfig?.infoTitle,
       infoDescription: layoutConfig?.infoDescription,

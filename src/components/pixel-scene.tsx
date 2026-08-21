@@ -273,6 +273,20 @@ export function PixelScene() {
         const selectedItemId = selectedInventoryItemIdRef.current;
         if (!selectedItemId) return null;
 
+        // Check dynamic inventory items (collected layout sprites)
+        const dynamicItem = game.state.dynamicInventoryItems?.find((d) => d.id === selectedItemId);
+        if (dynamicItem) {
+          const sourceSnapshot =
+            layout.latestLayoutSpritesRef.current.find((s) => s.id === selectedItemId) ??
+            controllerRef.current?.getLayoutSpriteSnapshotById(selectedItemId);
+          const targetObjectId = sourceSnapshot?.interaction?.collectTargetObjectId;
+          if (targetObjectId && targetObjectId === objectId) return null;
+          const targetSnapshot =
+            layout.latestLayoutSpritesRef.current.find((s) => s.id === objectId);
+          const targetLabel = targetSnapshot?.interaction?.infoTitle ?? objectId;
+          return `${dynamicItem.label} doesn't work on ${targetLabel}.`;
+        }
+
         const interactable = gameRef.current.getInteractable(objectId);
         const targetLabel =
           interactable?.label ?? INTERACTION_TARGET_LABELS[objectId] ?? objectId;
@@ -790,6 +804,8 @@ export function PixelScene() {
       <CollectEditor
         isOpen={isCollectEditorOpen}
         interaction={selectedLayoutSpriteInteraction}
+        selectedSpriteId={layout.selectedLayoutSpriteId}
+        allLayoutSprites={layout.latestLayoutSpritesRef.current}
         layoutInfoImageOptions={layoutInfoImageOptions}
         isUploadingCollectIcon={isUploadingCollectIcon}
         controllerRef={controllerRef}
