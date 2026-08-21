@@ -59,6 +59,7 @@ export function PixelScene() {
   const [isDrawerEditorOpen, setIsDrawerEditorOpen] = useState(false);
   const [isCollectEditorOpen, setIsCollectEditorOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
   const [selectedInfoEditorStage, setSelectedInfoEditorStage] =
     useState<SceneInfoModalStageId>("normal");
   const [layoutInfoImageOptions, setLayoutInfoImageOptions] = useState<string[]>([]);
@@ -413,9 +414,24 @@ export function PixelScene() {
   }, []);
 
   useEffect(() => {
-    const onChange = () => setIsFullscreen(document.fullscreenElement === shellRef.current);
+    const onChange = () => setIsFullscreen(
+      document.fullscreenElement === shellRef.current ||
+      (document as Document & { webkitFullscreenElement?: Element }).webkitFullscreenElement === shellRef.current
+    );
     document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange);
+
+    const onOrientationChange = () =>
+      setIsPortrait(window.matchMedia("(orientation: portrait)").matches);
+    onOrientationChange();
+    window.addEventListener("orientationchange", onOrientationChange);
+    window.matchMedia("(orientation: portrait)").addEventListener("change", onOrientationChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange);
+      window.removeEventListener("orientationchange", onOrientationChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -447,10 +463,39 @@ export function PixelScene() {
   const toggleFullscreen = async () => {
     const shell = shellRef.current;
     if (!shell) return;
-    if (document.fullscreenElement === shell) {
-      await document.exitFullscreen();
+
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element;
+      webkitExitFullscreen?: () => Promise<void>;
+    };
+    const el = shell as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void>;
+    };
+
+    const isCurrentlyFullscreen =
+      doc.fullscreenElement === shell || doc.webkitFullscreenElement === shell;
+
+    const tryLockLandscape = () => {
+      try {
+        const orientation = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void>; unlock?: () => void };
+        void orientation?.lock?.("landscape");
+      } catch { /* not supported */ }
+    };
+
+    if (isCurrentlyFullscreen) {
+      if (doc.exitFullscreen) await doc.exitFullscreen();
+      else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
+      else setIsFullscreen(false);
+      try { (screen.orientation as ScreenOrientation & { unlock?: () => void })?.unlock?.(); } catch { /* ignore */ }
     } else {
-      await shell.requestFullscreen();
+      try {
+        if (el.requestFullscreen) { await el.requestFullscreen(); tryLockLandscape(); }
+        else if (el.webkitRequestFullscreen) { await el.webkitRequestFullscreen(); tryLockLandscape(); }
+        else { setIsFullscreen(true); tryLockLandscape(); }
+      } catch {
+        setIsFullscreen(true);
+        tryLockLandscape();
+      }
     }
   };
 
@@ -532,7 +577,7 @@ export function PixelScene() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <section ref={shellRef} className="scene-shell" aria-label="Interactive pixel art intro">
+    <section ref={shellRef} className={`scene-shell${isFullscreen ? " is-faux-fullscreen" : ""}`} aria-label="Interactive pixel art intro">
       <div className={`scene-workspace${isLayoutModeEnabled ? " is-layout-open" : ""}`}>
         {isLayoutModeEnabled ? (
           <LayoutPanel
@@ -608,6 +653,13 @@ export function PixelScene() {
         />
 
         <SceneLoadingScreen isVisible={!isReady} progress={loadProgress} />
+
+        {isFullscreen && isPortrait ? (
+          <div className="scene-rotate-overlay font-pixel" aria-live="polite">
+            <span className="scene-rotate-overlay__icon">⟳</span>
+            <p>Rotate your device</p>
+          </div>
+        ) : null}
       </div>
 
       <div className="scene-controls">
