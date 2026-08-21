@@ -13,9 +13,16 @@ export type GameDialogueView = {
 
 export type SceneId = "scene-1" | "scene-2" | "scene-3" | "scene-4" | "scene-builder";
 
+export type DynamicInventoryItem = {
+  id: string;
+  label: string;
+  iconSrc: string;
+};
+
 export type GameState = {
   currentSceneId: SceneId;
   inventoryItemIds: string[];
+  dynamicInventoryItems: DynamicInventoryItem[];
   selectedInventoryItemId: string | null;
   flags: Record<string, GameFlagValue>;
   hiddenSceneObjectIds: string[];
@@ -28,6 +35,7 @@ export function createInitialGameState(): GameState {
   return {
     currentSceneId: "scene-1",
     inventoryItemIds: [],
+    dynamicInventoryItems: [],
     selectedInventoryItemId: null,
     flags: {},
     hiddenSceneObjectIds: [],

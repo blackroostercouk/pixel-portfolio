@@ -229,6 +229,12 @@ export function PixelScene() {
           : activeSceneOverride?.sprites?.map((s) => ({ ...s, layer: s.layer ?? "environmentLayer" })),
       onActionMenuAction: (objectId, actionId) => {
         if (actionId.endsWith("-generic-collect")) {
+          const snapshot =
+            layout.latestLayoutSpritesRef.current.find((s) => s.id === objectId) ??
+            controllerRef.current?.getLayoutSpriteSnapshotById(objectId);
+          const label = snapshot?.interaction?.infoTitle ?? objectId;
+          const iconSrc = snapshot?.src ?? "";
+          game.addDynamicInventoryItem({ id: objectId, label, iconSrc });
           controllerRef.current?.consumeLayoutSprite(objectId);
           return;
         }

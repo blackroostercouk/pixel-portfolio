@@ -11,7 +11,7 @@ import {
   runInteractableAction,
 } from "../core/action-runner";
 import type { GameContent } from "../core/game-schema";
-import type { SceneId } from "../core/game-state";
+import type { DynamicInventoryItem, SceneId } from "../core/game-state";
 
 export function useGameSession(content: GameContent = gameContent) {
   const [state, setState] = useState(() => createEmptyGameState());
@@ -20,9 +20,17 @@ export function useGameSession(content: GameContent = gameContent) {
     () => ({
       content,
       state,
-      inventoryItems: content.inventoryItems.filter((item) =>
-        state.inventoryItemIds.includes(item.id),
-      ),
+      inventoryItems: [
+        ...content.inventoryItems.filter((item) => state.inventoryItemIds.includes(item.id)),
+        ...(state.dynamicInventoryItems ?? []).map((d) => ({
+          id: d.id,
+          label: d.label,
+          iconSrc: d.iconSrc,
+          title: d.label,
+          description: "",
+          previewSrc: d.iconSrc,
+        })),
+      ],
       openInventory: () => {
         setState((current) =>
           applyGameActions(current, content, [{ type: "openInventory" }]),
@@ -64,6 +72,18 @@ export function useGameSession(content: GameContent = gameContent) {
           ...current,
           activeDialogue: null,
         }));
+      },
+      addDynamicInventoryItem: (item: DynamicInventoryItem) => {
+        setState((current) => {
+          const alreadyExists = current.dynamicInventoryItems.some((d) => d.id === item.id);
+          return {
+            ...current,
+            dynamicInventoryItems: alreadyExists
+              ? current.dynamicInventoryItems
+              : [...current.dynamicInventoryItems, item],
+            selectedInventoryItemId: item.id,
+          };
+        });
       },
     }),
     [content, state],
