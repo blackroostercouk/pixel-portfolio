@@ -1,0 +1,566 @@
+[
+  {
+    "id": "builder-scene-1",
+    "label": "Regen",
+    "backgroundSrc": "/assets/scene/builder/backgrounds/scene-bg-flux-2-pro-2026-08-15-11-42-05-1786794153186.webp",
+    "sprites": [
+      {
+        "id": "cit-1786708903029-1786708905626",
+        "assetId": "cit-1786708903029-1786708905626",
+        "src": "/assets/scene/builder/items/cit-1786708903029.webp",
+        "x": 1196,
+        "y": 932,
+        "width": 240,
+        "height": 151,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": 0,
+        "visuals": {
+          "brightness": -0.42,
+          "contrast": -1
+        }
+      },
+      {
+        "id": "green-big-1786707988006-1786707994261",
+        "assetId": "green-big-1786707988006-1786707994261",
+        "src": "/assets/scene/builder/items/green-big-1786707988006.webp",
+        "x": 403,
+        "y": 996,
+        "width": 351,
+        "height": 321,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": 0
+      },
+      {
+        "id": "jenerator-high-quality-1786705982884-1786705986269",
+        "assetId": "jenerator-high-quality-1786705982884-1786705986269",
+        "src": "/assets/scene/builder/items/jenerator-high-quality-1786705982884.webp",
+        "x": -47,
+        "y": 1008,
+        "width": 755,
+        "height": 728,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": 0
+      },
+      {
+        "id": "light-1787049065015",
+        "assetId": "light-1787049065015",
+        "runtimeType": "light",
+        "x": 288,
+        "y": 467,
+        "width": 272,
+        "height": 274,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "alpha": 0.22,
+        "layer": "effectsLayer",
+        "zIndex": 6,
+        "light": {
+          "color": "#e47c3e",
+          "intensity": 1,
+          "blendMode": "screen"
+        },
+        "particles": {
+          "enabled": true,
+          "color": "#f9ee8d",
+          "count": 7,
+          "size": 3,
+          "opacity": 0.25,
+          "speed": 0.65,
+          "drift": 0.5,
+          "areaWidth": 86,
+          "areaHeight": 118,
+          "blendMode": "screen"
+        }
+      },
+      {
+        "id": "rock-1786708790465-1786708794652",
+        "assetId": "rock-1786708790465-1786708794652",
+        "src": "/assets/scene/builder/items/rock-1786708790465.webp",
+        "x": -80,
+        "y": 986,
+        "width": 158,
+        "height": 129,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": 0,
+        "visuals": {
+          "brightness": -0.18,
+          "contrast": -1
+        }
+      },
+      {
+        "id": "scene-builder-main-character-1786641896790",
+        "assetId": "scene2Character",
+        "runtimeType": "character",
+        "x": 644,
+        "y": 1075,
+        "width": 136,
+        "height": 354,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "actorLayer",
+        "zIndex": 2
+      },
+      {
+        "id": "sunflower-1786708665109-1786708666923",
+        "assetId": "sunflower-1786708665109-1786708666923",
+        "src": "/assets/scene/builder/items/sunflower-1786708665109.webp",
+        "x": 153,
+        "y": 983,
+        "width": 95,
+        "height": 115,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": 0
+      }
+    ]
+  },
+  {
+    "id": "builder-scene-1786797213420",
+    "label": "Main Scene",
+    "backgroundSrc": null,
+    "sprites": [
+      {
+        "id": "bag-1786803468944",
+        "assetId": "bag-1786803468944",
+        "src": "/assets/scene/bag.webp",
+        "x": 928,
+        "y": 940,
+        "width": 86,
+        "height": 94,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": 0,
+        "interaction": {
+          "clickable": true,
+          "hasInfo": true,
+          "hasDrawer": false,
+          "collectible": false,
+          "bubbleMessage": "My bag",
+          "infoModal": {
+            "normal": {
+              "title": "A Little Something Extra",
+              "text": "This is my pack. There’s a little more inside, but you’ll need the code to get in.",
+              "imageSrc": "/assets/layout-info/lock-bag-1786722624688.webp",
+              "inputEnabled": true,
+              "inputPlaceholder": "Enter 4 digit code",
+              "correctAnswer": "3714"
+            },
+            "updated": {
+              "title": "Updated text",
+              "text": "Updated text 2",
+              "imageSrc": "/assets/layout-info/bag-open-1786723081936.webp"
+            }
+          }
+        }
+      },
+      {
+        "id": "bank-1786797713976",
+        "assetId": "bank-1786797713976",
+        "src": "/assets/scene/bank.webp",
+        "x": 777,
+        "y": 952,
+        "width": 319,
+        "height": 210,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": 0,
+        "interaction": {
+          "clickable": true,
+          "hasInfo": false,
+          "hasDrawer": false,
+          "collectible": false,
+          "bubbleMessage": "Reserved seating for one developer and one judgmental cat."
+        }
+      },
+      {
+        "id": "chatgpt-image-aug-15-2026-03-58-02-pm-1786805937864-1786805940766",
+        "assetId": "chatgpt-image-aug-15-2026-03-58-02-pm-1786805937864-1786805940766",
+        "src": "/assets/scene/builder/items/chatgpt-image-aug-15-2026-03-58-02-pm-1786805937864.webp",
+        "x": 1475,
+        "y": 908,
+        "width": 24,
+        "height": 16,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": -1,
+        "interaction": {
+          "clickable": true,
+          "hasInfo": true,
+          "hasDrawer": false,
+          "collectible": false,
+          "bubbleMessage": "Crumpled and forgotten by the trash can. Worth a second look.",
+          "infoModal": {
+            "normal": {
+              "title": "Just Paper",
+              "text": "Somebody crumpled this and walked away. Worth smoothing out.",
+              "imageSrc": "/assets/layout-info/chatgpt-image-aug-15-2026-03-58-02-pm-1786806177525.webp",
+              "secondImageSrc": "/assets/layout-info/acik-kagit-1786806615505.webp"
+            }
+          }
+        },
+        "visuals": {
+          "contrast": -1,
+          "brightness": -0.63
+        }
+      },
+      {
+        "id": "cop-1786798473225",
+        "assetId": "cop-1786798473225",
+        "src": "/assets/scene/cop.webp",
+        "x": 1429,
+        "y": 917,
+        "width": 102,
+        "height": 142,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": 0,
+        "interaction": {
+          "clickable": true,
+          "hasInfo": false,
+          "hasDrawer": false,
+          "collectible": false,
+          "bubbleMessage": "Where the first three layout attempts ended up."
+        }
+      },
+      {
+        "id": "kahve-1786797936984",
+        "assetId": "kahve-1786797936984",
+        "src": "/assets/scene/kahve.webp",
+        "x": 744,
+        "y": 946,
+        "width": 37,
+        "height": 50,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": 1,
+        "interaction": {
+          "clickable": true,
+          "hasInfo": true,
+          "hasDrawer": false,
+          "collectible": false,
+          "bubbleMessage": "Empty by the second commit, refilled by the fourth.",
+          "infoModal": {
+            "normal": {
+              "title": "The Usual",
+              "text": "Steam curls the same way every night. Not everything on the cup does.",
+              "imageSrc": "/assets/layout-info/mug-1786817023033.webp",
+              "secondImageSrc": "/assets/layout-info/coffee-back-1786817030740.webp"
+            }
+          }
+        }
+      },
+      {
+        "id": "lamba-1786798043009",
+        "assetId": "lamba-1786798043009",
+        "src": "/assets/scene/lamba.webp",
+        "x": 232,
+        "y": 944,
+        "width": 100,
+        "height": 562,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": 0,
+        "interaction": {
+          "clickable": true,
+          "hasInfo": false,
+          "hasDrawer": false,
+          "collectible": false,
+          "bubbleMessage": "The only code reviewer awake at this hour."
+        }
+      },
+      {
+        "id": "light-1786798350321",
+        "assetId": "light-1786798350321",
+        "runtimeType": "light",
+        "x": 220,
+        "y": 518,
+        "width": 308,
+        "height": 303,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "alpha": 0.97,
+        "layer": "effectsLayer",
+        "zIndex": 6,
+        "light": {
+          "color": "#76411e",
+          "intensity": 1.47,
+          "blendMode": "screen"
+        },
+        "particles": {
+          "enabled": true,
+          "color": "#cdbb98",
+          "count": 12,
+          "size": 3,
+          "opacity": 0.27,
+          "speed": 0.62,
+          "drift": 1.18,
+          "areaWidth": 131,
+          "areaHeight": 175,
+          "blendMode": "lighten"
+        }
+      },
+      {
+        "id": "logo-1786797222825",
+        "assetId": "logo-1786797222825",
+        "src": "/assets/logo.webp",
+        "x": 945,
+        "y": 463,
+        "width": 831,
+        "height": 440,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": 0,
+        "interaction": {
+          "clickable": true,
+          "hasInfo": false,
+          "hasDrawer": false,
+          "collectible": false,
+          "bubbleMessage": "It's not a Monkey, First letter of my full name 'MKY'"
+        },
+        "rainSplash": {
+          "enabled": true,
+          "zoneLeft": 0,
+          "zoneRight": 1,
+          "zoneTop": 0.11,
+          "zoneBottom": 0.23,
+          "splashLeft": 0,
+          "splashRight": 1,
+          "splashY": 0.06,
+          "splashLayer": "scene",
+          "randomSpread": 0,
+          "minWidth": 10,
+          "maxWidth": 57,
+          "minDurationMs": 180,
+          "maxDurationMs": 320,
+          "maxWidthRatio": 0.08,
+          "widthRatio": 0.79
+        },
+        "rainSplashSegments": [
+          {
+            "enabled": true,
+            "zoneLeft": 0,
+            "zoneRight": 1,
+            "zoneTop": 0.11,
+            "zoneBottom": 0.23,
+            "splashLeft": 0,
+            "splashRight": 1,
+            "splashY": 0.06,
+            "splashLayer": "scene",
+            "randomSpread": 0,
+            "minWidth": 10,
+            "maxWidth": 57,
+            "minDurationMs": 180,
+            "maxDurationMs": 320,
+            "maxWidthRatio": 0.08,
+            "widthRatio": 0.79
+          }
+        ]
+      },
+      {
+        "id": "raincot-1786797810954",
+        "assetId": "raincot-1786797810954",
+        "src": "/assets/scene/raincot.webp",
+        "x": 615,
+        "y": 919,
+        "width": 72,
+        "height": 175,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": 0,
+        "interaction": {
+          "clickable": true,
+          "hasInfo": false,
+          "hasDrawer": false,
+          "collectible": false,
+          "bubbleMessage": "Packed for the ten minutes London stops raining."
+        }
+      },
+      {
+        "id": "scene-builder-cat-1786798010726",
+        "assetId": "cat",
+        "runtimeType": "cat",
+        "x": 1144,
+        "y": 955,
+        "width": 99,
+        "height": 68,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "actorLayer",
+        "zIndex": 2,
+        "interaction": {
+          "clickable": true,
+          "hasInfo": false,
+          "hasDrawer": false,
+          "collectible": false,
+          "bubbleMessage": "He is my cat and his name is 'Simba'\n-----\nNants ingonyama bagithi baba"
+        }
+      },
+      {
+        "id": "scene-builder-character-idle-1786797693142",
+        "assetId": "character",
+        "runtimeType": "character-idle",
+        "x": 832,
+        "y": 950,
+        "width": 175,
+        "height": 287,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "actorLayer",
+        "zIndex": 2,
+        "interaction": {
+          "clickable": true,
+          "hasInfo": false,
+          "hasDrawer": true,
+          "collectible": false,
+          "bubbleMessage": "Ilove coffeee....",
+          "infoModal": {
+            "normal": {
+              "title": "Coffee normal",
+              "text": "Coffee normal text2",
+              "imageSrc": "/assets/layout-info/mug-1786817023033.webp",
+              "secondImageSrc": "/assets/layout-info/coffee-back-1786817030740.webp"
+            }
+          },
+          "drawer": {
+            "bodyHtml": "<p>I started out in Istanbul's agency scene as a junior designer with a tight deadline and a lot to prove, and somewhere between then and now the terminal won out over the canvas. Along the way I picked up two years in the Netherlands before landing in London, where I'm currently based. <br><br>That's the short version of how a design background turned into a development career.<br></p><p>These days most of my work is development. I still design when a project needs it, but I'm happiest deep in the code: Next.js, Webflow app development and Webflow Cloud, Supabase, DatoCMS, and HubSpot development, stitched into systems that are usually more complex under the hood than they look on screen.<br></p><p>My specialty is bringing Webflow and Shopify together: custom Shopify theme development and headless commerce builds that use Webflow's visual tooling without giving up the control a serious build needs. It's an unusual combination (most people live in one platform or the other, not both), and that's exactly why it's useful.<br></p><p>On the side, I've been building an AI-powered app that keeps an eye on Shopify competitors and turns what it finds into a weekly audio briefing, a good excuse to poke at OpenAI's API and a diff engine at the same time.<br></p><p>Outside of code: guitar (ten years in a band), an unreasonably competitive streak in fighting games, a cat with strong opinions about my desk chair, and an ongoing negotiation with my tomato plants.</p><p>I care about things that work properly and look like someone actually thought about them. That's the whole philosophy.</p>",
+            "title": "About me"
+          }
+        }
+      },
+      {
+        "id": "tabela-1786798511488",
+        "assetId": "tabela-1786798511488",
+        "src": "/assets/scene/tabela.webp",
+        "x": 1727,
+        "y": 970,
+        "width": 126,
+        "height": 240,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": 0,
+        "interaction": {
+          "clickable": true,
+          "hasInfo": false,
+          "hasDrawer": false,
+          "collectible": false,
+          "bubbleMessage": "Also the name of every Monday standup."
+        },
+        "rainSplash": {
+          "enabled": true,
+          "zoneLeft": 0,
+          "zoneRight": 1,
+          "zoneTop": 0.08,
+          "zoneBottom": 0.28,
+          "splashLeft": 0,
+          "splashRight": 1,
+          "splashY": 0.07,
+          "splashLayer": "scene",
+          "randomSpread": 0,
+          "widthRatio": 1,
+          "minWidthRatio": 0.1,
+          "maxWidthRatio": 0.22,
+          "minDurationMs": 180,
+          "maxDurationMs": 320
+        },
+        "rainSplashSegments": [
+          {
+            "enabled": true,
+            "zoneLeft": 0,
+            "zoneRight": 1,
+            "zoneTop": 0.08,
+            "zoneBottom": 0.28,
+            "splashLeft": 0,
+            "splashRight": 1,
+            "splashY": 0.07,
+            "splashLayer": "scene",
+            "randomSpread": 0,
+            "widthRatio": 1,
+            "minWidthRatio": 0.1,
+            "maxWidthRatio": 0.22,
+            "minDurationMs": 180,
+            "maxDurationMs": 320
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "builder-scene-1787228378688",
+    "label": "Shopify",
+    "backgroundSrc": null,
+    "sprites": [
+      {
+        "id": "light-1787231236402",
+        "assetId": "light-1787231236402",
+        "runtimeType": "light",
+        "x": 960,
+        "y": 640,
+        "width": 277,
+        "height": 277,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "alpha": 0.22,
+        "layer": "effectsLayer",
+        "zIndex": 6,
+        "light": {
+          "color": "#e47c3e",
+          "intensity": 1,
+          "blendMode": "screen"
+        }
+      },
+      {
+        "id": "light-1787231243522",
+        "assetId": "light-1787231243522",
+        "runtimeType": "light",
+        "x": 1330,
+        "y": 720,
+        "width": 284,
+        "height": 283,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "alpha": 0.59,
+        "layer": "effectsLayer",
+        "zIndex": 6,
+        "light": {
+          "color": "#e47c3e",
+          "intensity": 1.5,
+          "blendMode": "screen"
+        },
+        "particles": {
+          "enabled": true
+        }
+      },
+      {
+        "id": "shopify-house-1787231091610-1787231130097",
+        "assetId": "shopify-house-1787231091610-1787231130097",
+        "src": "/assets/scene/builder/items/shopify-house-1787231091610.webp",
+        "x": 1338,
+        "y": 998,
+        "width": 733,
+        "height": 671,
+        "anchorX": 0.5,
+        "anchorY": 1,
+        "layer": "environmentLayer",
+        "zIndex": 0
+      }
+    ]
+  }
+]

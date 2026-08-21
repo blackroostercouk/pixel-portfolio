@@ -1,0 +1,509 @@
+{
+  "savedAt": "2026-08-21T12:30:32.591Z",
+  "overrides": {
+    "scene-2": {
+      "sprites": [
+        {
+          "id": "scene2-basket-1",
+          "assetId": "knottyBasket1",
+          "x": 1382,
+          "y": 993,
+          "width": 112,
+          "height": 102,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 9
+        },
+        {
+          "id": "scene2-basket-2",
+          "assetId": "knottyBasket2",
+          "x": 1299,
+          "y": 999,
+          "width": 126,
+          "height": 106,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 8
+        },
+        {
+          "id": "scene2-center-sign",
+          "assetId": "knottyCenterSign",
+          "x": 978,
+          "y": 990,
+          "width": 474,
+          "height": 392,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "actorLayer",
+          "zIndex": 0,
+          "interaction": {
+            "clickable": true,
+            "hasInfo": true,
+            "hasDrawer": false,
+            "collectible": false,
+            "bubbleMessage": "Knotty ones, I build a custom theme for them...."
+          }
+        },
+        {
+          "id": "scene2-character",
+          "assetId": "scene2Character",
+          "x": 352,
+          "y": 1058,
+          "width": 136,
+          "height": 354,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "actorLayer",
+          "zIndex": 0,
+          "interaction": {
+            "clickable": true,
+            "hasInfo": false,
+            "hasDrawer": false,
+            "collectible": false
+          }
+        },
+        {
+          "id": "scene2-flower-left",
+          "assetId": "knottyFlower",
+          "x": 22,
+          "y": 979,
+          "width": 132,
+          "height": 172,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": -1
+        },
+        {
+          "id": "scene2-flower-mid-left",
+          "assetId": "knottyFlower2",
+          "x": 58,
+          "y": 979,
+          "width": 88,
+          "height": 106,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 10,
+          "interaction": {
+            "clickable": true,
+            "hasInfo": true,
+            "hasDrawer": false,
+            "collectible": true,
+            "bubbleMessage": "Something usefull"
+          }
+        },
+        {
+          "id": "scene2-flower-mid-right",
+          "assetId": "knottyFlower3",
+          "x": 104,
+          "y": 976,
+          "width": 90,
+          "height": 93,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": -2
+        },
+        {
+          "id": "scene2-flower-right",
+          "assetId": "knottyFlower4",
+          "x": 1934,
+          "y": 1009,
+          "width": 126,
+          "height": 107,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 0
+        },
+        {
+          "id": "scene2-knitts",
+          "assetId": "knottyKnitts",
+          "x": 1450,
+          "y": 980,
+          "width": 370,
+          "height": 305,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": -3,
+          "interaction": {
+            "clickable": true,
+            "hasInfo": true,
+            "hasDrawer": false,
+            "collectible": false,
+            "bubbleMessage": "Good collection"
+          }
+        },
+        {
+          "id": "scene2-lamp",
+          "assetId": "knottyLamp",
+          "x": 982,
+          "y": 622,
+          "width": 108,
+          "height": 94,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "actorLayer",
+          "zIndex": 0
+        },
+        {
+          "id": "scene2-paint",
+          "assetId": "knottyPaint",
+          "x": -170,
+          "y": -2,
+          "width": 23,
+          "height": 43,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 0
+        },
+        {
+          "id": "scene2-stone-right",
+          "assetId": "knottyStone",
+          "x": 981,
+          "y": 955,
+          "width": 257,
+          "height": 127,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "scaleX": -1,
+          "layer": "environmentLayer",
+          "zIndex": 0
+        }
+      ]
+    },
+    "scene-1": {
+      "sprites": [
+        {
+          "id": "bag",
+          "assetId": "bag",
+          "x": 981,
+          "y": 930,
+          "width": 91,
+          "height": 100,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 0,
+          "interaction": {
+            "clickable": true,
+            "hasInfo": false,
+            "hasDrawer": false,
+            "collectible": false
+          }
+        },
+        {
+          "id": "bench",
+          "assetId": "bench",
+          "x": 842,
+          "y": 945,
+          "width": 310,
+          "height": 203,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 0
+        },
+        {
+          "id": "coffee",
+          "assetId": "coffee",
+          "x": 823,
+          "y": 939,
+          "width": 38,
+          "height": 50,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "actorLayer",
+          "zIndex": 7,
+          "interaction": {
+            "clickable": true,
+            "hasInfo": true,
+            "hasDrawer": false,
+            "collectible": true
+          }
+        },
+        {
+          "id": "lamp",
+          "assetId": "lamp",
+          "x": 169,
+          "y": 943,
+          "width": 120,
+          "height": 670,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "scaleX": 1.2666666666666666,
+          "scaleY": 1.2666666666666666,
+          "layer": "environmentLayer",
+          "zIndex": 0,
+          "interaction": {
+            "clickable": true,
+            "hasInfo": false,
+            "hasDrawer": false,
+            "collectible": false
+          }
+        },
+        {
+          "id": "logo",
+          "assetId": "logo",
+          "x": 960,
+          "y": 346,
+          "width": 663,
+          "height": 351,
+          "anchorX": 0.5,
+          "anchorY": 0.5,
+          "ignoreSceneScale": true,
+          "layer": "environmentLayer",
+          "zIndex": 80,
+          "interaction": {
+            "clickable": true,
+            "hasInfo": false,
+            "hasDrawer": false,
+            "collectible": false
+          }
+        },
+        {
+          "id": "raincot",
+          "assetId": "raincot",
+          "x": 687,
+          "y": 927,
+          "width": 77,
+          "height": 185,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 1
+        },
+        {
+          "id": "sign",
+          "assetId": "sign",
+          "x": 1749,
+          "y": 964,
+          "width": 134,
+          "height": 256,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 0,
+          "interaction": {
+            "clickable": true,
+            "hasInfo": false,
+            "hasDrawer": false,
+            "collectible": false
+          }
+        },
+        {
+          "id": "trash",
+          "assetId": "trash",
+          "x": 1535,
+          "y": 924,
+          "width": 106,
+          "height": 170,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 0,
+          "interaction": {
+            "clickable": true,
+            "hasInfo": false,
+            "hasDrawer": false,
+            "collectible": false
+          }
+        }
+      ]
+    },
+    "scene-3": {
+      "sprites": [
+        {
+          "id": "scene3-boxes",
+          "assetId": "shopifyBoxes",
+          "x": -7,
+          "y": 1009,
+          "width": 184,
+          "height": 178,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 3
+        },
+        {
+          "id": "scene3-cat",
+          "assetId": "cat",
+          "x": 1747,
+          "y": 1005,
+          "width": 99,
+          "height": 68,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "actorLayer",
+          "zIndex": 0
+        },
+        {
+          "id": "scene3-character",
+          "assetId": "scene2Character",
+          "x": -100,
+          "y": 1074,
+          "width": 136,
+          "height": 354,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "actorLayer",
+          "zIndex": 0,
+          "interaction": {
+            "clickable": true,
+            "hasInfo": false,
+            "hasDrawer": false,
+            "collectible": false
+          }
+        },
+        {
+          "id": "scene3-flower-basket",
+          "assetId": "shopifyFlowerBasket",
+          "x": 2025,
+          "y": 1025,
+          "width": 144,
+          "height": 136,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 5
+        },
+        {
+          "id": "scene3-umbrella",
+          "assetId": "shopifyUmbrella",
+          "x": 1851,
+          "y": 1036,
+          "width": 472,
+          "height": 492,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 4
+        },
+        {
+          "id": "shopify_house-1786960956868",
+          "assetId": "shopify_house-1786960956868",
+          "src": "/assets/scene/shopify/shopify_house.webp",
+          "x": 1375,
+          "y": 1002,
+          "width": 755,
+          "height": 714,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 0
+        }
+      ]
+    },
+    "scene-4": {
+      "sprites": [
+        {
+          "id": "scene4-cat",
+          "assetId": "cat",
+          "x": 1155,
+          "y": 941,
+          "width": 99,
+          "height": 68,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "actorLayer",
+          "zIndex": 1
+        },
+        {
+          "id": "scene4-character",
+          "assetId": "scene2Character",
+          "x": -268,
+          "y": 1072,
+          "width": 136,
+          "height": 354,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "actorLayer",
+          "zIndex": 2,
+          "interaction": {
+            "clickable": true,
+            "hasInfo": false,
+            "hasDrawer": false,
+            "collectible": false
+          }
+        },
+        {
+          "id": "scene4-cube-1",
+          "assetId": "webflowCube1",
+          "x": -33,
+          "y": 974,
+          "width": 51,
+          "height": 52,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 8
+        },
+        {
+          "id": "scene4-cube-2",
+          "assetId": "webflowCube2",
+          "x": 852,
+          "y": 930,
+          "width": 49,
+          "height": 48,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 5
+        },
+        {
+          "id": "scene4-direction-prop",
+          "assetId": "webflowDirection",
+          "x": 52,
+          "y": 979,
+          "width": 171,
+          "height": 284,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 2
+        },
+        {
+          "id": "scene4-first-prop",
+          "assetId": "webflowFirstProp",
+          "x": 1510,
+          "y": 1001,
+          "width": 389,
+          "height": 317,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 2
+        },
+        {
+          "id": "scene4-sign-prop",
+          "assetId": "webflowSignProp",
+          "x": 1158,
+          "y": 968,
+          "width": 615,
+          "height": 389,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": 1
+        },
+        {
+          "id": "scene4-stone-decor-mashroom",
+          "assetId": "webflowStoneDecorMashroom",
+          "x": -105,
+          "y": 996,
+          "width": 220,
+          "height": 197,
+          "anchorX": 0.5,
+          "anchorY": 1,
+          "layer": "environmentLayer",
+          "zIndex": -4
+        }
+      ]
+    }
+  }
+}
