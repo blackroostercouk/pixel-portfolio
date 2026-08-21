@@ -59,6 +59,7 @@ export function PixelScene() {
     useState<SceneInfoModalStageId>("normal");
   const [layoutInfoImageOptions, setLayoutInfoImageOptions] = useState<string[]>([]);
   const [isUploadingInfoImage, setIsUploadingInfoImage] = useState(false);
+  const [isUploadingCollectIcon, setIsUploadingCollectIcon] = useState(false);
 
   const currentScene = sceneRegistry[game.state.currentSceneId];
   const activeItemInfo =
@@ -232,8 +233,8 @@ export function PixelScene() {
           const snapshot =
             layout.latestLayoutSpritesRef.current.find((s) => s.id === objectId) ??
             controllerRef.current?.getLayoutSpriteSnapshotById(objectId);
-          const label = snapshot?.interaction?.infoTitle ?? objectId;
-          const iconSrc = snapshot?.src ?? "";
+          const label = snapshot?.interaction?.collectLabel || snapshot?.interaction?.infoTitle || objectId;
+          const iconSrc = snapshot?.interaction?.collectIconSrc || snapshot?.src || "";
           game.addDynamicInventoryItem({ id: objectId, label, iconSrc });
           controllerRef.current?.consumeLayoutSprite(objectId);
           return;
@@ -487,6 +488,27 @@ export function PixelScene() {
     }
   };
 
+  const handleCollectIconUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsUploadingCollectIcon(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/layout-info-image", { method: "POST", body: formData });
+      if (!res.ok) return;
+      const data = (await res.json()) as { src?: string };
+      if (!data.src) return;
+      setLayoutInfoImageOptions((curr) =>
+        curr.includes(data.src!) ? curr : [...curr, data.src!].sort(),
+      );
+      controllerRef.current?.updateSelectedLayoutSpriteInteraction({ collectIconSrc: data.src });
+    } catch { /* ignore */ } finally {
+      setIsUploadingCollectIcon(false);
+      event.target.value = "";
+    }
+  };
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -555,6 +577,9 @@ export function PixelScene() {
             onAddLight={() => void layout.addRuntimeLightToScene()}
             onOpenInfoEditor={() => setIsInfoEditorOpen(true)}
             onOpenDrawerEditor={() => setIsDrawerEditorOpen(true)}
+            layoutInfoImageOptions={layoutInfoImageOptions}
+            isUploadingCollectIcon={isUploadingCollectIcon}
+            onCollectIconUpload={handleCollectIconUpload}
           />
         ) : null}
 

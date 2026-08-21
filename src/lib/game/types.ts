@@ -154,6 +154,8 @@ export type SceneSpriteInteractionConfig = {
   hasInfo?: boolean;
   hasDrawer?: boolean;
   collectible?: boolean;
+  collectLabel?: string;
+  collectIconSrc?: string;
   bubbleMessage?: string;
   infoTitle?: string;
   infoDescription?: string;
