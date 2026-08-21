@@ -805,7 +805,7 @@ export function PixelScene() {
         isOpen={isCollectEditorOpen}
         interaction={selectedLayoutSpriteInteraction}
         selectedSpriteId={layout.selectedLayoutSpriteId}
-        allLayoutSprites={layout.latestLayoutSpritesRef.current}
+        allLayoutSprites={layout.visibleLayoutSprites}
         layoutInfoImageOptions={layoutInfoImageOptions}
         isUploadingCollectIcon={isUploadingCollectIcon}
         controllerRef={controllerRef}
