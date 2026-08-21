@@ -1,6 +1,5 @@
-import { readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase/server";
 import type { LayoutSpriteSnapshot } from "@/lib/game/types";
 
 type BuilderSceneRecord = {
@@ -10,17 +9,21 @@ type BuilderSceneRecord = {
   sprites: LayoutSpriteSnapshot[];
 };
 
-const FILE_PATH = path.join(process.cwd(), "src", "lib", "game", "builder-scenes.json");
-
 export const runtime = "nodejs";
-
-async function readBuilderScenesFile() {
-  const raw = await readFile(FILE_PATH, "utf8");
-  return JSON.parse(raw) as BuilderSceneRecord[];
-}
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const scenes = await readBuilderScenesFile();
+  const { data, error } = await supabaseAdmin
+    .from("builder_scenes")
+    .select("data")
+    .eq("id", "singleton")
+    .single();
+
+  if (error && error.code !== "PGRST116") {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const scenes: BuilderSceneRecord[] = data?.data ?? [];
   return NextResponse.json({ scenes });
 }
 
@@ -31,7 +34,13 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Invalid scenes payload." }, { status: 400 });
   }
 
-  await writeFile(FILE_PATH, `${JSON.stringify(body.scenes, null, 2)}\n`, "utf8");
+  const { error } = await supabaseAdmin
+    .from("builder_scenes")
+    .upsert({ id: "singleton", data: body.scenes }, { onConflict: "id" });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

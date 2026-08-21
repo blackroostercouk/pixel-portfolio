@@ -1,6 +1,5 @@
-import { readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase/server";
 import type { LayoutSpriteSnapshot } from "@/lib/game/types";
 import type { SceneId } from "@/lib/game/core/game-state";
 
@@ -11,61 +10,45 @@ type SceneOverrideRecord = {
 
 type SceneOverridesPayload = Partial<Record<SceneId, SceneOverrideRecord>>;
 
-const FILE_PATH = path.join(process.cwd(), "src", "lib", "game", "scene-overrides.json");
-const DEBUG_FILE_PATH = path.join(process.cwd(), "src", "lib", "game", "scene-overrides.debug.json");
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-async function readSceneOverridesFile() {
-  const raw = await readFile(FILE_PATH, "utf8");
-  return JSON.parse(raw) as SceneOverridesPayload;
-}
+const NO_CACHE_HEADERS = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+  Pragma: "no-cache",
+  Expires: "0",
+};
 
 export async function GET() {
-  const overrides = await readSceneOverridesFile();
-  return NextResponse.json(
-    { overrides },
-    {
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    },
-  );
+  const { data, error } = await supabaseAdmin
+    .from("scene_overrides")
+    .select("data")
+    .eq("id", "singleton")
+    .single();
+
+  if (error && error.code !== "PGRST116") {
+    return NextResponse.json({ error: error.message }, { status: 500, headers: NO_CACHE_HEADERS });
+  }
+
+  const overrides: SceneOverridesPayload = data?.data ?? {};
+  return NextResponse.json({ overrides }, { headers: NO_CACHE_HEADERS });
 }
 
 export async function PUT(request: Request) {
   const body = (await request.json()) as { overrides?: SceneOverridesPayload };
 
   if (!body.overrides || typeof body.overrides !== "object" || Array.isArray(body.overrides)) {
-    return NextResponse.json({ error: "Invalid overrides payload." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid overrides payload." }, { status: 400, headers: NO_CACHE_HEADERS });
   }
 
-  await writeFile(
-    DEBUG_FILE_PATH,
-    `${JSON.stringify(
-      {
-        savedAt: new Date().toISOString(),
-        overrides: body.overrides,
-      },
-      null,
-      2,
-    )}\n`,
-    "utf8",
-  );
-  await writeFile(FILE_PATH, `${JSON.stringify(body.overrides, null, 2)}\n`, "utf8");
+  const { error } = await supabaseAdmin
+    .from("scene_overrides")
+    .upsert({ id: "singleton", data: body.overrides }, { onConflict: "id" });
 
-  return NextResponse.json(
-    { ok: true },
-    {
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    },
-  );
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500, headers: NO_CACHE_HEADERS });
+  }
+
+  return NextResponse.json({ ok: true }, { headers: NO_CACHE_HEADERS });
 }

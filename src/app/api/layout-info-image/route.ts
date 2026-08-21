@@ -1,24 +1,23 @@
-import { mkdir, readdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import sharp from "sharp";
 import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase/server";
 
-const PUBLIC_DIR = path.join(process.cwd(), "public");
-const ASSETS_DIR = path.join(PUBLIC_DIR, "assets");
-const OUTPUT_DIR = path.join(ASSETS_DIR, "layout-info");
+const BUCKET = "layout-info";
 const ALLOWED_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp"]);
 const IGNORED_SEGMENTS = ["frame_", "trash-mouse-idle", "character-idle", "character-close-laptop"];
 
 export const runtime = "nodejs";
 
-function toPublicAssetPath(absolutePath: string) {
-  return `/${path.relative(PUBLIC_DIR, absolutePath).split(path.sep).join("/")}`;
+function getExtension(fileName: string) {
+  const dot = fileName.lastIndexOf(".");
+  return dot === -1 ? "" : fileName.slice(dot).toLowerCase();
 }
 
 function sanitizeBaseName(fileName: string) {
+  const dot = fileName.lastIndexOf(".");
+  const stem = dot === -1 ? fileName : fileName.slice(0, dot);
   return (
-    path
-      .basename(fileName, path.extname(fileName))
+    stem
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
@@ -26,37 +25,28 @@ function sanitizeBaseName(fileName: string) {
   );
 }
 
-async function collectImages(dir: string): Promise<string[]> {
-  const entries = await readdir(dir, { withFileTypes: true });
-  const files = await Promise.all(
-    entries.map(async (entry) => {
-      const fullPath = path.join(dir, entry.name);
-
-      if (entry.isDirectory()) {
-        return collectImages(fullPath);
-      }
-
-      const extension = path.extname(entry.name).toLowerCase();
-
-      if (!ALLOWED_EXTENSIONS.has(extension)) {
-        return [];
-      }
-
-      const publicPath = toPublicAssetPath(fullPath);
-
-      if (IGNORED_SEGMENTS.some((segment) => publicPath.includes(segment))) {
-        return [];
-      }
-
-      return [publicPath];
-    }),
-  );
-
-  return files.flat().sort((left, right) => left.localeCompare(right));
-}
-
 export async function GET() {
-  const images = await collectImages(ASSETS_DIR);
+  const { data, error } = await supabaseAdmin.storage.from(BUCKET).list("", {
+    limit: 1000,
+    sortBy: { column: "name", order: "asc" },
+  });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const {
+    data: { publicUrl: baseUrl },
+  } = supabaseAdmin.storage.from(BUCKET).getPublicUrl("");
+
+  const images = (data ?? [])
+    .filter((file) => {
+      const ext = getExtension(file.name);
+      if (!ALLOWED_EXTENSIONS.has(ext)) return false;
+      if (IGNORED_SEGMENTS.some((seg) => file.name.includes(seg))) return false;
+      return true;
+    })
+    .map((file) => `${baseUrl}${file.name}`);
 
   return NextResponse.json({ images });
 }
@@ -69,22 +59,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing file." }, { status: 400 });
   }
 
-  const extension = path.extname(file.name).toLowerCase();
+  const extension = getExtension(file.name);
 
   if (!ALLOWED_EXTENSIONS.has(extension)) {
     return NextResponse.json({ error: "Unsupported file type." }, { status: 400 });
   }
 
-  await mkdir(OUTPUT_DIR, { recursive: true });
-
   const inputBuffer = Buffer.from(await file.arrayBuffer());
+  const webpBuffer = await sharp(inputBuffer).webp({ quality: 92 }).toBuffer();
   const fileStem = `${sanitizeBaseName(file.name)}-${Date.now()}`;
-  const outputPath = path.join(OUTPUT_DIR, `${fileStem}.webp`);
+  const storagePath = `${fileStem}.webp`;
 
-  await sharp(inputBuffer).webp({ quality: 92 }).toFile(outputPath);
-  await writeFile(path.join(OUTPUT_DIR, `${fileStem}.source.txt`), file.name, "utf8");
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from(BUCKET)
+    .upload(storagePath, webpBuffer, { contentType: "image/webp", upsert: false });
 
-  return NextResponse.json({
-    src: toPublicAssetPath(outputPath),
-  });
+  if (uploadError) {
+    return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(storagePath);
+
+  return NextResponse.json({ src: publicUrl });
 }
