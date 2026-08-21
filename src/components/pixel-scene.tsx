@@ -610,52 +610,56 @@ export function PixelScene() {
         <SceneLoadingScreen isVisible={!isReady} progress={loadProgress} />
       </div>
 
-      {auth.user ? (
-        <div className="scene-controls">
-          <div className="scene-controls__top-row">
-            <div className="scene-controls__actions">
-              <button
-                type="button"
-                className="scene-icon-trigger"
-                onClick={() => setIsMapOpen(true)}
-                aria-label="Open map"
-                title="Map"
-              >
-                <Directions aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="scene-icon-trigger"
-                onClick={() => void toggleFullscreen()}
-                aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-              >
-                <Expand aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className={`scene-icon-trigger${isLayoutModeEnabled ? " is-active" : ""}`}
-                onClick={() => setIsLayoutModeEnabled((c) => !c)}
-                aria-label={isLayoutModeEnabled ? "Disable layout mode" : "Enable layout mode"}
-                title={isLayoutModeEnabled ? "Layout On" : "Layout Off"}
-              >
-                <Grid3x3 aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="scene-icon-trigger scene-icon-trigger--logout"
-                onClick={() => {
-                  setIsLayoutModeEnabled(false);
-                  void auth.signOut();
-                }}
-                title="Logout"
-                aria-label="Logout"
-              >
-                <span className="scene-logout-label font-pixel">exit</span>
-              </button>
-            </div>
+      <div className="scene-controls">
+        <div className="scene-controls__top-row">
+          <div className="scene-controls__actions">
+            <button
+              type="button"
+              className="scene-icon-trigger"
+              onClick={() => setIsMapOpen(true)}
+              aria-label="Open map"
+              title="Map"
+            >
+              <Directions aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="scene-icon-trigger"
+              onClick={() => void toggleFullscreen()}
+              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+            >
+              <Expand aria-hidden="true" />
+            </button>
+            {auth.user ? (
+              <>
+                <button
+                  type="button"
+                  className={`scene-icon-trigger${isLayoutModeEnabled ? " is-active" : ""}`}
+                  onClick={() => setIsLayoutModeEnabled((c) => !c)}
+                  aria-label={isLayoutModeEnabled ? "Disable layout mode" : "Enable layout mode"}
+                  title={isLayoutModeEnabled ? "Layout On" : "Layout Off"}
+                >
+                  <Grid3x3 aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="scene-icon-trigger scene-icon-trigger--logout"
+                  onClick={() => {
+                    setIsLayoutModeEnabled(false);
+                    void auth.signOut();
+                  }}
+                  title="Logout"
+                  aria-label="Logout"
+                >
+                  <span className="scene-logout-label font-pixel">exit</span>
+                </button>
+              </>
+            ) : null}
           </div>
+        </div>
 
+        {auth.user ? (
           <label className="scene-select font-pixel" htmlFor="scene-select">
             <span className="scene-select__label">Scene</span>
             <select
@@ -676,8 +680,8 @@ export function PixelScene() {
               ))}
             </select>
           </label>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       {/* Avatar drawer */}
       <div
