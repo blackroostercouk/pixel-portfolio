@@ -189,12 +189,8 @@ const WALKABLE_GROUND_MIN_X = 80;
 const WALKABLE_GROUND_MAX_X = 1840;
 const SCENE_TWO_WALK_TRIM_TRAILING_FRAMES = 2;
 
-const SCENE_ASSET_FALLBACKS = {
-  "scene-4": [
-    { alias: "backgroundScene4", src: "/assets/scene/webflow/webflow_bg.webp" },
-    { alias: "webflowMainPart", src: "/assets/scene/webflow/main_part.webp" },
-  ],
-} as const;
+const _loadedBundles = new Set<string>();
+let _manifestInitialized = false;
 
 function createTrashMouseIdleClip(): AnimationClip {
   const frames = Array.from({ length: 14 }, (_, index) => {
@@ -1010,16 +1006,33 @@ export class PixelSceneController {
       return;
     }
 
-    await Assets.init({ manifest: sceneAssetsManifest });
-    this.options.onLoadProgress?.(0);
-    await Assets.loadBundle("scene", (progress) => {
-      this.options.onLoadProgress?.(progress);
-    });
+    const onProgress = this.options.onLoadProgress;
 
-    const sceneFallbackAssets = SCENE_ASSET_FALLBACKS[this.sceneId as keyof typeof SCENE_ASSET_FALLBACKS];
+    if (!_manifestInitialized) {
+      await Assets.init({ manifest: sceneAssetsManifest });
+      _manifestInitialized = true;
+    }
 
-    if (sceneFallbackAssets) {
-      await Assets.load(sceneFallbackAssets);
+    const sceneBundleName = this.sceneId !== "scene-builder" ? this.sceneId : null;
+    const bundlesToLoad: string[] = [];
+    if (!_loadedBundles.has("shared")) bundlesToLoad.push("shared");
+    if (sceneBundleName && !_loadedBundles.has(sceneBundleName)) bundlesToLoad.push(sceneBundleName);
+
+    if (bundlesToLoad.length === 0) {
+      onProgress?.(1);
+    } else {
+      const count = bundlesToLoad.length;
+      for (let i = 0; i < count; i++) {
+        const bundle = bundlesToLoad[i];
+        const startP = i / count;
+        const endP = (i + 1) / count;
+        onProgress?.(startP);
+        await Assets.loadBundle(bundle, (p: number) => {
+          onProgress?.(startP + p * (endP - startP));
+        });
+        _loadedBundles.add(bundle);
+      }
+      onProgress?.(1);
     }
 
     if (this.options.runtimeSceneBackgroundSrc) {
