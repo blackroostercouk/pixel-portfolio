@@ -90,6 +90,9 @@ export type SceneInfoModalStageConfig = {
   inputEnabled?: boolean;
   inputPlaceholder?: string;
   correctAnswer?: string;
+  collectibleSrc?: string;
+  collectibleLabel?: string;
+  collectibleFinishImageSrc?: string;
 };
 
 export type SceneInfoModalConfig = {
@@ -128,6 +131,7 @@ export type SceneSpriteRainSplashConfig = SceneSpriteRainSplashSegmentConfig;
 export type SceneSpriteVisualConfig = {
   brightness?: number;
   contrast?: number;
+  waterRipple?: boolean;
 };
 
 export type SceneSpriteLightConfig = {
@@ -157,6 +161,10 @@ export type SceneSpriteInteractionConfig = {
   collectLabel?: string;
   collectIconSrc?: string;
   collectTargetObjectId?: string;
+  collectTargetAction?: "openModal" | "giveCollectible";
+  collectTargetCollectibleSrc?: string;
+  collectTargetCollectibleLabel?: string;
+  collectConsumeOnUse?: boolean;
   bubbleMessage?: string;
   infoTitle?: string;
   infoDescription?: string;

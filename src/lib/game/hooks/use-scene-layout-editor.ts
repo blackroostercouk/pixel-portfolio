@@ -56,6 +56,9 @@ export function useSceneLayoutEditor(
   const [layoutSaveLabel, setLayoutSaveLabel] = useState("");
   const [sceneOverrideRenderVersion, setSceneOverrideRenderVersion] = useState(0);
 
+  // ─── Default scene ────────────────────────────────────────────────────
+  const [defaultSceneOptionValue, setDefaultSceneOptionValueState] = useState<string | null>(null);
+
   // ─── Builder scenes ───────────────────────────────────────────────────
   const [builderScenes, setBuilderScenes] = useState<BuilderSceneDefinition[]>([]);
   const [activeBuilderSceneId, setActiveBuilderSceneId] = useState("builder-scene-1");
@@ -122,11 +125,15 @@ export function useSceneLayoutEditor(
         if (!res.ok) return;
         const data = (await res.json()) as {
           overrides?: Partial<Record<SceneId, SceneOverrideDefinition>>;
+          defaultSceneOptionValue?: string | null;
         };
         if (data.overrides) {
           lastPersistedSceneOverridesJsonRef.current = JSON.stringify(data.overrides);
           setSceneOverrides(data.overrides);
           setSceneOverrideRenderVersion((v) => v + 1);
+        }
+        if (data.defaultSceneOptionValue) {
+          setDefaultSceneOptionValueState(data.defaultSceneOptionValue);
         }
       } catch {
         // ignore
@@ -239,6 +246,10 @@ export function useSceneLayoutEditor(
     }).format(new Date());
     setLayoutSaveState("saved");
     setLayoutSaveLabel(`Saved ${savedAt}`);
+    window.setTimeout(() => {
+      setLayoutSaveLabel("");
+      setLayoutSaveState("idle");
+    }, 2600);
   };
 
   const markLayoutSaveError = () => {
@@ -248,13 +259,30 @@ export function useSceneLayoutEditor(
 
   const persistSceneOverrides = async (
     overrides: Partial<Record<SceneId, SceneOverrideDefinition>>,
+    newDefaultSceneOptionValue?: string | null,
   ) => {
+    const body: { overrides: Partial<Record<SceneId, SceneOverrideDefinition>>; defaultSceneOptionValue?: string | null } = { overrides };
+    if (newDefaultSceneOptionValue !== undefined) body.defaultSceneOptionValue = newDefaultSceneOptionValue;
     const res = await fetch("/api/scene-overrides", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ overrides }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error("Failed to persist scene overrides.");
+  };
+
+  const saveDefaultScene = async (optionValue: string) => {
+    const prev = defaultSceneOptionValue;
+    setDefaultSceneOptionValueState(optionValue);
+    setLayoutSaveState("saving");
+    setLayoutSaveLabel("Saving default...");
+    try {
+      await persistSceneOverrides(sceneOverridesRef.current, optionValue);
+      markLayoutSaveSuccess();
+    } catch {
+      setDefaultSceneOptionValueState(prev);
+      markLayoutSaveError();
+    }
   };
 
   const persistBuilderScenes = async (scenes: BuilderSceneDefinition[]) => {
@@ -649,6 +677,10 @@ export function useSceneLayoutEditor(
 
     // Callbacks
     onLayoutStateChange,
+
+    // Default scene
+    defaultSceneOptionValue,
+    saveDefaultScene,
 
     // Actions
     saveCurrentSceneLayout,

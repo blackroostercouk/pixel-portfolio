@@ -1,7 +1,8 @@
 "use client";
 
 import { type ReactNode, type ChangeEvent } from "react";
-import { BUILDER_ANIMATED_PRESET_OPTIONS, LIGHT_PARTICLE_PRESETS } from "@/lib/game/builder-constants";
+import { Copy, Save, Reload, Home, ZoomIn, ZoomOut, FlipHorizontal2, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUp, ArrowDown, Trash } from "pixelarticons/react";
+import { BUILDER_ANIMATED_PRESET_OPTIONS, LIGHT_PARTICLE_PRESETS, BUILDER_SCENE_SELECT_PREFIX } from "@/lib/game/builder-constants";
 import { createDefaultRainSplashConfig } from "@/lib/game/layout-utils";
 import type { PixelSceneController } from "@/lib/game/pixel-scene-controller";
 import type {
@@ -53,11 +54,18 @@ type LayoutPanelProps = {
   currentSceneId: string;
 
   // Save state
-  layoutSaveLabel: string;
   layoutSaveState: LayoutSaveState;
   onCopyJson: () => void;
   onSave: () => void;
   onReset: () => void;
+
+  // Default scene
+  defaultSceneOptionValue: string | null;
+  onSetDefaultScene: (optionValue: string) => void;
+
+  // Scene select
+  selectedSceneOptionValue: string;
+  onSceneSelectChange: (value: string) => void;
 
   // Selected sprite
   selectedLayoutSpriteId: string | null;
@@ -133,9 +141,12 @@ export function LayoutPanel({
   onLightingChange,
   onRainChange,
   currentSceneId,
-  layoutSaveLabel,
   layoutSaveState,
   onCopyJson,
+  defaultSceneOptionValue,
+  onSetDefaultScene,
+  selectedSceneOptionValue,
+  onSceneSelectChange,
   onSave,
   onReset,
   selectedLayoutSpriteId,
@@ -195,23 +206,44 @@ export function LayoutPanel({
       <div className="layout-panel__header">
         <p className="layout-panel__eyebrow">Layout Mode</p>
         <div className="layout-panel__actions">
-          {layoutSaveLabel ? (
-            <span className={`layout-panel__status layout-panel__status--${layoutSaveState}`}>
-              {layoutSaveLabel}
-            </span>
-          ) : null}
-          <button type="button" className="layout-panel__copy" onClick={onCopyJson}>
-            Copy JSON
+          <button type="button" className="layout-panel__icon-btn" onClick={onCopyJson} title="Copy JSON" aria-label="Copy JSON">
+            <Copy aria-hidden="true" />
           </button>
-          <button type="button" className="layout-panel__copy" onClick={onSave}>
-            Save
+          <button type="button" className="layout-panel__icon-btn" onClick={onSave} title="Save" aria-label="Save">
+            <Save aria-hidden="true" />
           </button>
           {!isBuilderScene ? (
-            <button type="button" className="layout-panel__copy" onClick={onReset}>
-              Reset
+            <button type="button" className="layout-panel__icon-btn" onClick={onReset} title="Reset" aria-label="Reset">
+              <Reload aria-hidden="true" />
             </button>
           ) : null}
+          <button
+            type="button"
+            className={`layout-panel__icon-btn${defaultSceneOptionValue === selectedSceneOptionValue ? " layout-panel__icon-btn--active" : ""}`}
+            onClick={() => onSetDefaultScene(selectedSceneOptionValue)}
+            title={defaultSceneOptionValue === selectedSceneOptionValue ? "Default scene" : "Set as default scene"}
+            aria-label={defaultSceneOptionValue === selectedSceneOptionValue ? "Default scene" : "Set as default scene"}
+          >
+            <Home aria-hidden="true" />
+          </button>
         </div>
+      </div>
+
+      {/* Scene select */}
+      <div className="layout-panel__scene-select">
+        <label className="layout-panel__label" htmlFor="lp-scene-select">Scene</label>
+        <select
+          id="lp-scene-select"
+          className="layout-panel__select"
+          value={selectedSceneOptionValue}
+          onChange={(e) => onSceneSelectChange(e.target.value)}
+        >
+          {builderScenes.map((scene) => (
+            <option key={scene.id} value={`${BUILDER_SCENE_SELECT_PREFIX}${scene.id}`}>
+              {scene.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <p className="layout-panel__hint">
@@ -593,7 +625,7 @@ export function LayoutPanel({
                 </LayoutPanelSection>
 
                 {!isLightSelected ? (
-                  <LayoutPanelSection title="Visual">
+                  <LayoutPanelSection title="Visual" defaultOpen>
                     <label className="layout-panel__field">
                       <span className="layout-panel__label">
                         Brightness {((selectedLayoutSpriteVisuals?.brightness ?? 0) * 100).toFixed(0)}%
@@ -629,6 +661,18 @@ export function LayoutPanel({
                           })
                         }
                       />
+                    </label>
+                    <label className="layout-panel__toggle">
+                      <input
+                        type="checkbox"
+                        checked={selectedLayoutSpriteVisuals?.waterRipple ?? false}
+                        onChange={(e) =>
+                          controllerRef.current?.updateSelectedLayoutSpriteVisuals({
+                            waterRipple: e.target.checked || undefined,
+                          })
+                        }
+                      />
+                      <span>Water Ripple</span>
                     </label>
                   </LayoutPanelSection>
                 ) : null}
@@ -1074,69 +1118,81 @@ export function LayoutPanel({
 
                 {/* Transform */}
                 <LayoutPanelSection title="Transform">
-                  <div className="layout-panel__actions">
+                  <div className="layout-panel__icon-row">
                     <button
                       type="button"
-                      className="layout-panel__action"
+                      className="layout-panel__icon-btn"
+                      title="Scale down"
+                      aria-label="Scale down"
                       onClick={() => controllerRef.current?.scaleSelectedLayoutSprite(0.9)}
                     >
-                      Scale -
+                      <ZoomOut aria-hidden="true" />
                     </button>
                     <button
                       type="button"
-                      className="layout-panel__action"
+                      className="layout-panel__icon-btn"
+                      title="Scale up"
+                      aria-label="Scale up"
                       onClick={() => controllerRef.current?.scaleSelectedLayoutSprite(1.1)}
                     >
-                      Scale +
+                      <ZoomIn aria-hidden="true" />
                     </button>
-                  </div>
-                  <div className="layout-panel__actions">
                     <button
                       type="button"
-                      className="layout-panel__action"
+                      className="layout-panel__icon-btn"
+                      title="Flip horizontal"
+                      aria-label="Flip horizontal"
                       onClick={() => controllerRef.current?.flipSelectedLayoutSpriteHorizontally()}
                     >
-                      Flip X
+                      <FlipHorizontal2 aria-hidden="true" />
                     </button>
                     <button
                       type="button"
-                      className="layout-panel__action"
+                      className="layout-panel__icon-btn"
+                      title="Z-index -1"
+                      aria-label="Z-index down"
                       onClick={() => controllerRef.current?.offsetSelectedLayoutSpriteZIndex(-1)}
                     >
-                      Z -
+                      <ArrowDownWideNarrow aria-hidden="true" />
                     </button>
                     <button
                       type="button"
-                      className="layout-panel__action"
+                      className="layout-panel__icon-btn"
+                      title="Z-index +1"
+                      aria-label="Z-index up"
                       onClick={() => controllerRef.current?.offsetSelectedLayoutSpriteZIndex(1)}
                     >
-                      Z +
+                      <ArrowUpWideNarrow aria-hidden="true" />
                     </button>
-                  </div>
-                  <div className="layout-panel__actions">
                     <button
                       type="button"
-                      className="layout-panel__action"
+                      className="layout-panel__icon-btn"
+                      title="Send to back"
+                      aria-label="Send to back"
                       onClick={() => controllerRef.current?.sendSelectedLayoutSpriteToBack()}
                     >
-                      Send Back
+                      <ArrowDown aria-hidden="true" />
                     </button>
                     <button
                       type="button"
-                      className="layout-panel__action"
+                      className="layout-panel__icon-btn"
+                      title="Bring to front"
+                      aria-label="Bring to front"
                       onClick={() => controllerRef.current?.bringSelectedLayoutSpriteToFront()}
                     >
-                      Bring Front
+                      <ArrowUp aria-hidden="true" />
                     </button>
                     <button
                       type="button"
-                      className="layout-panel__action"
+                      className="layout-panel__icon-btn layout-panel__icon-btn--danger"
+                      title="Delete"
+                      aria-label="Delete"
                       onClick={() => {
                         controllerRef.current?.deleteSelectedLayoutSprite();
                         setSelectedLayoutSpriteId(null);
                       }}
                     >
-                      Delete
+                      <Trash aria-hidden="true" />
                     </button>
                   </div>
                 </LayoutPanelSection>

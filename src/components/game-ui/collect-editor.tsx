@@ -128,7 +128,7 @@ export function CollectEditor({
           ) : (
             <>
               <p className="layout-panel__hint">
-                Select the object this item can be used on. When the item is selected and the player clicks that object, the object&apos;s normal interaction triggers.
+                Bu item seçiliyken hangi objeye tıklanınca aksiyon tetiklensin?
               </p>
 
               <label className="layout-panel__field">
@@ -150,6 +150,78 @@ export function CollectEditor({
                   ))}
                 </select>
               </label>
+
+              {interaction?.collectTargetObjectId ? (
+                <>
+                  <label className="layout-panel__field">
+                    <span className="layout-panel__label">Action</span>
+                    <select
+                      className="layout-panel__input"
+                      value={interaction?.collectTargetAction ?? "openModal"}
+                      onChange={(e) =>
+                        controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                          collectTargetAction: e.target.value as "openModal" | "giveCollectible",
+                        })
+                      }
+                    >
+                      <option value="openModal">Open modal on target</option>
+                      <option value="giveCollectible">Give a new item</option>
+                    </select>
+                  </label>
+
+                  <label className="layout-panel__field">
+                    <input
+                      type="checkbox"
+                      checked={interaction?.collectConsumeOnUse ?? false}
+                      onChange={(e) =>
+                        controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                          collectConsumeOnUse: e.target.checked || undefined,
+                        })
+                      }
+                    />
+                    <span className="layout-panel__label">Remove from inventory after use</span>
+                  </label>
+
+                  {(interaction?.collectTargetAction ?? "openModal") === "giveCollectible" ? (
+                    <>
+                      <label className="layout-panel__field">
+                        <span className="layout-panel__label">Reward Image</span>
+                        <select
+                          className="layout-panel__input"
+                          value={interaction?.collectTargetCollectibleSrc ?? NONE_VALUE}
+                          onChange={(e) =>
+                            controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                              collectTargetCollectibleSrc: e.target.value === NONE_VALUE ? undefined : e.target.value,
+                            })
+                          }
+                        >
+                          <option value={NONE_VALUE}>Select image...</option>
+                          {layoutInfoImageOptions.map((src) => (
+                            <option key={src} value={src}>
+                              {src.split("/").pop()}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="layout-panel__field">
+                        <span className="layout-panel__label">Reward Label</span>
+                        <input
+                          className="layout-panel__input"
+                          type="text"
+                          value={interaction?.collectTargetCollectibleLabel ?? ""}
+                          placeholder="e.g. Golden Key"
+                          onChange={(e) =>
+                            controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                              collectTargetCollectibleLabel: e.target.value || undefined,
+                            })
+                          }
+                        />
+                      </label>
+                    </>
+                  ) : null}
+                </>
+              ) : null}
             </>
           )}
         </div>

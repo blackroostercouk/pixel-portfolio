@@ -48,7 +48,7 @@ function sanitizeBaseName(fileName: string) {
 }
 
 function collectBuiltInSceneAssets(kind: "background" | "item") {
-  const sceneBundle = sceneAssetsManifest.bundles.find((bundle) => bundle.name === "scene");
+  const sceneBundle = sceneAssetsManifest.bundles.find((bundle) => bundle.name === "shared");
   if (!sceneBundle) return [];
 
   const assets = (Array.isArray(sceneBundle.assets) ? sceneBundle.assets : []) as SceneManifestAsset[];

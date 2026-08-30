@@ -11,7 +11,7 @@ export type GameDialogueView = {
   choices: GameDialogueChoice[];
 } | null;
 
-export type SceneId = "scene-1" | "scene-2" | "scene-3" | "scene-4" | "scene-builder";
+export type SceneId = "scene-builder";
 
 export type DynamicInventoryItem = {
   id: string;
@@ -33,7 +33,7 @@ export type GameState = {
 
 export function createInitialGameState(): GameState {
   return {
-    currentSceneId: "scene-1",
+    currentSceneId: "scene-builder",
     inventoryItemIds: [],
     dynamicInventoryItems: [],
     selectedInventoryItemId: null,

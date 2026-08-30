@@ -3,6 +3,7 @@ import {
   Assets,
   ColorMatrixFilter,
   Container,
+  DisplacementFilter,
   FederatedPointerEvent,
   Rectangle,
   Sprite,
@@ -130,6 +131,9 @@ type LayoutEditableSpriteRuntime = {
   config: SceneSpriteConfig;
   animator?: SpriteAnimator;
   colorFilter?: ColorMatrixFilter;
+  displacementFilter?: DisplacementFilter;
+  displacementSprite?: Sprite;
+  waterElapsedMs?: number;
 };
 type CustomLightRuntime = {
   sprite: Sprite;
@@ -398,7 +402,7 @@ export class PixelSceneController {
   private isLayoutModeEnabled = false;
   private selectedLayoutSpriteId: string | null = null;
   private activeLayoutDrag: ActiveLayoutDrag | null = null;
-  private readonly sceneId: SceneId = this.options.sceneId ?? "scene-1";
+  private readonly sceneId: SceneId = this.options.sceneId ?? "scene-builder";
 
   private hasTextureAsset(assetId: string) {
     try {
@@ -1013,10 +1017,8 @@ export class PixelSceneController {
       _manifestInitialized = true;
     }
 
-    const sceneBundleName = this.sceneId !== "scene-builder" ? this.sceneId : null;
     const bundlesToLoad: string[] = [];
     if (!_loadedBundles.has("shared")) bundlesToLoad.push("shared");
-    if (sceneBundleName && !_loadedBundles.has(sceneBundleName)) bundlesToLoad.push(sceneBundleName);
 
     if (bundlesToLoad.length === 0) {
       onProgress?.(1);
@@ -1177,52 +1179,6 @@ export class PixelSceneController {
       this.effectSystems = [...this.effectSystems, lampReflectionSystem];
     }
 
-    if (this.sceneId === "scene-2") {
-      const sceneTwoLampLightSystem = new SceneTwoLampLightSystem();
-      layers.effectsLayer.addChild(sceneTwoLampLightSystem.container);
-      this.sceneTwoLampLightSystem = sceneTwoLampLightSystem;
-      this.effectSystems = [...this.effectSystems, sceneTwoLampLightSystem];
-
-      const sceneTwoLampMoteSystem = new SceneTwoLampMoteSystem();
-      layers.effectsLayer.addChild(sceneTwoLampMoteSystem.container);
-      this.sceneTwoLampMoteSystem = sceneTwoLampMoteSystem;
-      this.effectSystems = [...this.effectSystems, sceneTwoLampMoteSystem];
-    }
-
-    if (this.sceneId === "scene-3") {
-      const sceneThreeLampLightSystem = new SceneThreeLampLightSystem();
-      sceneThreeLampLightSystem.container.position.set(1278, 436);
-      sceneThreeLampLightSystem.container.scale.set(0.58);
-      layers.effectsLayer.addChild(sceneThreeLampLightSystem.container);
-      this.sceneThreeLampLightSystem = sceneThreeLampLightSystem;
-      this.effectSystems = [...this.effectSystems, sceneThreeLampLightSystem];
-
-      const sceneThreeLampMoteSystem = new SceneThreeLampMoteSystem();
-      sceneThreeLampMoteSystem.container.position.set(1278, 436);
-      sceneThreeLampMoteSystem.container.scale.set(0.58);
-      layers.effectsLayer.addChild(sceneThreeLampMoteSystem.container);
-      this.sceneThreeLampMoteSystem = sceneThreeLampMoteSystem;
-      this.effectSystems = [...this.effectSystems, sceneThreeLampMoteSystem];
-
-      const sceneThreeChimneySmokeSystem = new SceneThreeChimneySmokeSystem();
-      sceneThreeChimneySmokeSystem.setControls({
-        x: 1388,
-        y: 325,
-        scale: 1.18,
-        density: 1.42,
-        drift: 0.74,
-      });
-      layers.effectsLayer.addChild(sceneThreeChimneySmokeSystem.container);
-      this.sceneThreeChimneySmokeSystem = sceneThreeChimneySmokeSystem;
-      this.effectSystems = [...this.effectSystems, sceneThreeChimneySmokeSystem];
-    }
-
-    if (this.sceneId === "scene-2" || this.sceneId === "scene-3" || this.sceneId === "scene-4") {
-      const walkInCharacterShadowSystem = new WalkInCharacterShadowSystem();
-      layers.environmentLayer.addChild(walkInCharacterShadowSystem.container);
-      this.walkInCharacterShadowSystem = walkInCharacterShadowSystem;
-      this.effectSystems = [...this.effectSystems, walkInCharacterShadowSystem];
-    }
 
     const rainSystem = new RainSystem(sceneDefinition.rainConfig);
     layers.effectsLayer.addChild(rainSystem.container);
@@ -1612,26 +1568,71 @@ export class PixelSceneController {
     }
   }
 
+  private static createWaveDisplacementTexture(size = 256): Texture {
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d")!;
+    const imageData = ctx.createImageData(size, size);
+    const { data } = imageData;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const i = (y * size + x) * 4;
+        // R channel drives horizontal displacement, G drives vertical
+        const r = Math.sin((x / size) * Math.PI * 4 + (y / size) * Math.PI * 2) * 0.5 + 0.5;
+        const g = Math.cos((y / size) * Math.PI * 4 + (x / size) * Math.PI * 1.5) * 0.5 + 0.5;
+        data[i]     = Math.round(r * 255);
+        data[i + 1] = Math.round(g * 255);
+        data[i + 2] = 128;
+        data[i + 3] = 255;
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return Texture.from(canvas);
+  }
+
   private applyVisualsToLayoutSprite(entry: LayoutEditableSpriteRuntime) {
     const visuals = entry.config.visuals;
     const sprite = entry.sprite;
 
-    if (!visuals) {
-      sprite.filters = [];
-      return;
+    const filters: (ColorMatrixFilter | DisplacementFilter)[] = [];
+
+    if (visuals?.brightness !== undefined || visuals?.contrast !== undefined) {
+      let colorFilter = entry.colorFilter;
+      if (!colorFilter) {
+        colorFilter = new ColorMatrixFilter();
+        entry.colorFilter = colorFilter;
+      }
+      colorFilter.reset();
+      colorFilter.brightness(1 + (visuals.brightness ?? 0), false);
+      colorFilter.contrast(1 + (visuals.contrast ?? 0), true);
+      filters.push(colorFilter);
+    } else if (entry.colorFilter) {
+      entry.colorFilter = undefined;
     }
 
-    let colorFilter = entry.colorFilter;
-
-    if (!colorFilter) {
-      colorFilter = new ColorMatrixFilter();
-      entry.colorFilter = colorFilter;
+    if (visuals?.waterRipple) {
+      if (!entry.displacementFilter) {
+        const dispTexture = PixelSceneController.createWaveDisplacementTexture();
+        const dispSprite = new Sprite(dispTexture);
+        dispSprite.texture.source.addressMode = "repeat";
+        dispSprite.width = sprite.width;
+        dispSprite.height = sprite.height;
+        const dispFilter = new DisplacementFilter({ sprite: dispSprite, scale: 4 });
+        entry.displacementSprite = dispSprite;
+        entry.displacementFilter = dispFilter;
+        entry.waterElapsedMs = 0;
+        sprite.addChild(dispSprite);
+      }
+      filters.push(entry.displacementFilter);
+    } else if (entry.displacementFilter) {
+      entry.displacementSprite?.destroy();
+      entry.displacementSprite = undefined;
+      entry.displacementFilter.destroy();
+      entry.displacementFilter = undefined;
     }
 
-    colorFilter.reset();
-    colorFilter.brightness(1 + (visuals.brightness ?? 0), false);
-    colorFilter.contrast(1 + (visuals.contrast ?? 0), true);
-    sprite.filters = [colorFilter];
+    sprite.filters = filters;
   }
 
   private createBackgroundSprite(
@@ -1810,6 +1811,10 @@ export class PixelSceneController {
       collectLabel: layoutConfig?.collectLabel,
       collectIconSrc: layoutConfig?.collectIconSrc,
       collectTargetObjectId: layoutConfig?.collectTargetObjectId,
+      collectTargetAction: layoutConfig?.collectTargetAction,
+      collectTargetCollectibleSrc: layoutConfig?.collectTargetCollectibleSrc,
+      collectTargetCollectibleLabel: layoutConfig?.collectTargetCollectibleLabel,
+      collectConsumeOnUse: layoutConfig?.collectConsumeOnUse,
       bubbleMessage: layoutConfig?.bubbleMessage,
       infoTitle: layoutConfig?.infoTitle,
       infoDescription: layoutConfig?.infoDescription,
@@ -2140,6 +2145,16 @@ export class PixelSceneController {
       effectSystem.update(deltaMs);
     }
 
+    // Animate water ripple displacement
+    for (const entry of this.layoutEditableSpritesById.values()) {
+      if (entry.displacementSprite && entry.displacementFilter) {
+        entry.waterElapsedMs = (entry.waterElapsedMs ?? 0) + deltaMs;
+        const t = entry.waterElapsedMs * 0.0005;
+        entry.displacementSprite.x = Math.sin(t) * 12;
+        entry.displacementSprite.y = t * 20 % (entry.sprite.height || 64);
+      }
+    }
+
     if (this.lightingEnabled) {
       for (const runtime of this.customLightsById.values()) {
         runtime.elapsedMs += deltaMs;
@@ -2439,16 +2454,18 @@ export class PixelSceneController {
       return;
     }
 
-    if (!this.isSpriteClickableForGameplay(objectId)) {
+    const overrideMessage = this.options.getInteractionOverrideMessage?.(objectId);
+
+    if (overrideMessage != null) {
+      if (overrideMessage) {
+        this.activeCharacterBubbleOverrideMessage = overrideMessage;
+        this.hideActionMenuIcons();
+        this.showBubble("character");
+      }
       return;
     }
 
-    const overrideMessage = this.options.getInteractionOverrideMessage?.(objectId);
-
-    if (overrideMessage) {
-      this.activeCharacterBubbleOverrideMessage = overrideMessage;
-      this.hideActionMenuIcons();
-      this.showBubble("character");
+    if (!this.isSpriteClickableForGameplay(objectId)) {
       return;
     }
 

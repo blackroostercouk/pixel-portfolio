@@ -3,10 +3,15 @@
 import { useEffect, useRef } from "react";
 import { clampAudioVolume } from "@/lib/game/layout-utils";
 
-export function useRainAudio(isRainEnabled: boolean) {
+export function useRainAudio(isRainEnabled: boolean, isSoundEnabled: boolean = true) {
   const rainAudioRef = useRef<HTMLAudioElement | null>(null);
   const hasUnlockedAudioRef = useRef(false);
   const rainAudioFadeFrameRef = useRef<number | null>(null);
+  const isRainEnabledRef = useRef(isRainEnabled);
+  const isSoundEnabledRef = useRef(isSoundEnabled);
+
+  isRainEnabledRef.current = isRainEnabled;
+  isSoundEnabledRef.current = isSoundEnabled;
 
   const fadeRainAudioTo = (targetVolume: number, durationMs: number) => {
     const audio = rainAudioRef.current;
@@ -42,11 +47,11 @@ export function useRainAudio(isRainEnabled: boolean) {
     rainAudioFadeFrameRef.current = window.requestAnimationFrame(tick);
   };
 
-  const syncRainAudio = (rainEnabled: boolean) => {
+  const syncRainAudio = (rainEnabled: boolean, soundEnabled: boolean) => {
     const audio = rainAudioRef.current;
     if (!audio || !hasUnlockedAudioRef.current) return;
 
-    if (!rainEnabled) {
+    if (!rainEnabled || !soundEnabled) {
       fadeRainAudioTo(0, 320);
       return;
     }
@@ -75,17 +80,11 @@ export function useRainAudio(isRainEnabled: boolean) {
     audio.load();
     rainAudioRef.current = audio;
 
-    const handleCanPlay = () => syncRainAudio(isRainEnabled);
-    audio.addEventListener("canplaythrough", handleCanPlay);
-    audio.addEventListener("loadeddata", handleCanPlay);
-
     return () => {
       if (rainAudioFadeFrameRef.current !== null) {
         window.cancelAnimationFrame(rainAudioFadeFrameRef.current);
         rainAudioFadeFrameRef.current = null;
       }
-      audio.removeEventListener("canplaythrough", handleCanPlay);
-      audio.removeEventListener("loadeddata", handleCanPlay);
       audio.pause();
       audio.currentTime = 0;
       rainAudioRef.current = null;
@@ -93,10 +92,11 @@ export function useRainAudio(isRainEnabled: boolean) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Register unlock listener once — reads current values from refs to avoid stale closure
   useEffect(() => {
     const unlockAudio = () => {
       hasUnlockedAudioRef.current = true;
-      syncRainAudio(isRainEnabled);
+      syncRainAudio(isRainEnabledRef.current, isSoundEnabledRef.current);
     };
 
     window.addEventListener("pointerdown", unlockAudio, { once: true });
@@ -106,9 +106,10 @@ export function useRainAudio(isRainEnabled: boolean) {
       window.removeEventListener("pointerdown", unlockAudio);
       window.removeEventListener("keydown", unlockAudio);
     };
-  }, [isRainEnabled]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    syncRainAudio(isRainEnabled);
-  }, [isRainEnabled]);
+    syncRainAudio(isRainEnabled, isSoundEnabled);
+  }, [isRainEnabled, isSoundEnabled]);
 }

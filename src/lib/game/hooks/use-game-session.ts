@@ -85,6 +85,14 @@ export function useGameSession(content: GameContent = gameContent) {
           };
         });
       },
+      removeDynamicInventoryItem: (itemId: string) => {
+        setState((current) => ({
+          ...current,
+          dynamicInventoryItems: current.dynamicInventoryItems.filter((d) => d.id !== itemId),
+          selectedInventoryItemId:
+            current.selectedInventoryItemId === itemId ? null : current.selectedInventoryItemId,
+        }));
+      },
     }),
     [content, state],
   );

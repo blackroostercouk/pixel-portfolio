@@ -11,6 +11,8 @@ type Props = {
   activeLayoutInfoPortraitSrc: string;
   activeLayoutInfoHasAlternateImage: boolean;
   activeLayoutInfoHasFinalStage: boolean;
+  activeLayoutInfoHasCollectible: boolean;
+  activeLayoutInfoIsCollected: boolean;
   activeLayoutInfoModalFlipped: boolean;
   activeLayoutInfoInputValue: string;
   onClose: () => void;
@@ -26,6 +28,8 @@ export function LayoutInfoModal({
   activeLayoutInfoPortraitSrc,
   activeLayoutInfoHasAlternateImage,
   activeLayoutInfoHasFinalStage,
+  activeLayoutInfoHasCollectible,
+  activeLayoutInfoIsCollected,
   activeLayoutInfoModalFlipped,
   activeLayoutInfoInputValue,
   onClose,
@@ -135,23 +139,29 @@ export function LayoutInfoModal({
           <button
             type="button"
             className={`item-info-modal__preview${
-              activeLayoutInfoHasAlternateImage || activeLayoutInfoHasFinalStage
+              activeLayoutInfoHasAlternateImage || activeLayoutInfoHasFinalStage || (activeLayoutInfoHasCollectible && !activeLayoutInfoIsCollected)
                 ? " is-interactive"
                 : ""
-            }`}
+            }${activeLayoutInfoHasCollectible && !activeLayoutInfoIsCollected ? " has-collectible" : ""}`}
             onClick={onPreviewClick}
             aria-label={
               activeLayoutInfoHasAlternateImage
                 ? "Toggle alternate preview"
                 : activeLayoutInfoHasFinalStage
                   ? "Reveal final preview"
-                  : "Object preview"
+                  : activeLayoutInfoHasCollectible && !activeLayoutInfoIsCollected
+                    ? "Collect item"
+                    : "Object preview"
             }
           >
             {activeLayoutInfoStage.imageSrc ? (
               <img
                 className={`item-info-modal__preview-image${
-                  activeLayoutInfoModalFlipped ? " is-hidden" : " is-visible"
+                  activeLayoutInfoIsCollected && activeLayoutInfoStage.collectibleFinishImageSrc
+                    ? " is-hidden"
+                    : activeLayoutInfoModalFlipped
+                      ? " is-hidden"
+                      : " is-visible"
                 }`}
                 src={activeLayoutInfoStage.imageSrc}
                 alt={activeLayoutInfoStage.title ?? "Object preview"}
@@ -166,6 +176,27 @@ export function LayoutInfoModal({
                 src={activeLayoutInfoStage.secondImageSrc}
                 alt={`${activeLayoutInfoStage.title ?? "Object"} alternate view`}
               />
+            ) : null}
+
+            {activeLayoutInfoStage.collectibleFinishImageSrc ? (
+              <img
+                className={`item-info-modal__preview-image${activeLayoutInfoIsCollected ? " is-visible" : " is-hidden"}`}
+                src={activeLayoutInfoStage.collectibleFinishImageSrc}
+                alt={activeLayoutInfoStage.title ?? "Collected"}
+              />
+            ) : null}
+
+            {activeLayoutInfoHasCollectible && !activeLayoutInfoIsCollected && activeLayoutInfoStage.collectibleSrc ? (
+              <div className="item-info-modal__collectible-hint">
+                <img
+                  className="item-info-modal__collectible-icon"
+                  src={activeLayoutInfoStage.collectibleSrc}
+                  alt="Collectible item"
+                />
+                <span className="item-info-modal__collectible-label font-pixel">
+                  {activeLayoutInfoStage.collectibleLabel ?? "Collect"}
+                </span>
+              </div>
             ) : null}
           </button>
 

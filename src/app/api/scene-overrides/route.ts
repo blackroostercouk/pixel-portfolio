@@ -10,6 +10,10 @@ type SceneOverrideRecord = {
 
 type SceneOverridesPayload = Partial<Record<SceneId, SceneOverrideRecord>>;
 
+type SiteSettingsData = {
+  _defaultSceneOptionValue?: string;
+} & SceneOverridesPayload;
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -31,20 +35,24 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500, headers: NO_CACHE_HEADERS });
   }
 
-  const overrides: SceneOverridesPayload = data?.data ?? {};
-  return NextResponse.json({ overrides }, { headers: NO_CACHE_HEADERS });
+  const raw: SiteSettingsData = data?.data ?? {};
+  const { _defaultSceneOptionValue, ...overrides } = raw;
+  return NextResponse.json({ overrides, defaultSceneOptionValue: _defaultSceneOptionValue ?? null }, { headers: NO_CACHE_HEADERS });
 }
 
 export async function PUT(request: Request) {
-  const body = (await request.json()) as { overrides?: SceneOverridesPayload };
+  const body = (await request.json()) as { overrides?: SceneOverridesPayload; defaultSceneOptionValue?: string | null };
 
   if (!body.overrides || typeof body.overrides !== "object" || Array.isArray(body.overrides)) {
     return NextResponse.json({ error: "Invalid overrides payload." }, { status: 400, headers: NO_CACHE_HEADERS });
   }
 
+  const data: SiteSettingsData = { ...body.overrides };
+  if (body.defaultSceneOptionValue) data._defaultSceneOptionValue = body.defaultSceneOptionValue;
+
   const { error } = await supabaseAdmin
     .from("scene_overrides")
-    .upsert({ id: "singleton", data: body.overrides }, { onConflict: "id" });
+    .upsert({ id: "singleton", data }, { onConflict: "id" });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500, headers: NO_CACHE_HEADERS });

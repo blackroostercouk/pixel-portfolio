@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { Directions, Expand, Grid3x3 } from "pixelarticons/react";
+import { Directions, Expand, Grid3x3, Logout, Volume, Volume3 } from "pixelarticons/react";
 import Link from "@tiptap/extension-link";
 import StarterKit from "@tiptap/starter-kit";
 import { useEditor } from "@tiptap/react";
@@ -44,6 +44,7 @@ export function PixelScene() {
   const gameRef = useRef(game);
   const selectedInventoryItemIdRef = useRef<string | null>(null);
   const playfulInteractionRotationRef = useRef<Record<string, number>>({});
+  const hasAppliedDefaultSceneRef = useRef(false);
 
   gameRef.current = game;
 
@@ -52,6 +53,7 @@ export function PixelScene() {
   const [isReady, setIsReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [isRainEnabled, setIsRainEnabled] = useState(true);
+  const [isSoundEnabled, setIsSoundEnabled] = useState(true);
   const [isLightingEnabled, setIsLightingEnabled] = useState(true);
   const [isLayoutModeEnabled, setIsLayoutModeEnabled] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
@@ -59,11 +61,16 @@ export function PixelScene() {
   const [isDrawerEditorOpen, setIsDrawerEditorOpen] = useState(false);
   const [isCollectEditorOpen, setIsCollectEditorOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [acquiredItem, setAcquiredItem] = useState<{ label: string; iconSrc: string } | null>(null);
+  const acquiredItemTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setAcquiredItemRef = useRef(setAcquiredItem);
+  setAcquiredItemRef.current = setAcquiredItem;
   const [isPortrait, setIsPortrait] = useState(false);
   const [selectedInfoEditorStage, setSelectedInfoEditorStage] =
     useState<SceneInfoModalStageId>("normal");
   const [layoutInfoImageOptions, setLayoutInfoImageOptions] = useState<string[]>([]);
   const [isUploadingInfoImage, setIsUploadingInfoImage] = useState(false);
+  const [isUploadingCollectibleImage, setIsUploadingCollectibleImage] = useState(false);
   const [isUploadingCollectIcon, setIsUploadingCollectIcon] = useState(false);
 
   const currentScene = sceneRegistry[game.state.currentSceneId];
@@ -74,11 +81,11 @@ export function PixelScene() {
 
   selectedInventoryItemIdRef.current = selectedInventoryItem?.id ?? null;
 
-  useRainAudio(isRainEnabled);
+  useRainAudio(isRainEnabled, isSoundEnabled);
   const avatarDrawer = useAvatarDrawer();
   const cursorFollow = useCursorFollow(!!selectedInventoryItem);
   const { registerInventoryItemRef } = useInventoryAnimations(game.inventoryItems);
-  const infoModal = useInfoModal();
+  const infoModal = useInfoModal({ onCollect: game.addDynamicInventoryItem });
   const layout = useSceneLayoutEditor(currentScene.id, controllerRef);
 
   // ─── Derived selected sprite ──────────────────────────────────────────────
@@ -222,19 +229,11 @@ export function PixelScene() {
 
     let isMounted = true;
     const activeBuilderScene = layout.activeBuilderScene;
-    const activeSceneOverride = layout.sceneOverrides[currentScene.id as SceneId];
-
     const controller = new PixelSceneController({
       sceneId: currentScene.id,
       onLoadProgress: (p) => setLoadProgress(p),
-      runtimeSceneBackgroundSrc:
-        currentScene.id === "scene-builder"
-          ? (activeBuilderScene?.backgroundSrc ?? null)
-          : (activeSceneOverride?.backgroundSrc ?? null),
-      runtimeSceneSprites:
-        currentScene.id === "scene-builder"
-          ? (activeBuilderScene?.sprites.map((s) => ({ ...s, layer: s.layer ?? "environmentLayer" })) ?? [])
-          : activeSceneOverride?.sprites?.map((s) => ({ ...s, layer: s.layer ?? "environmentLayer" })),
+      runtimeSceneBackgroundSrc: activeBuilderScene?.backgroundSrc ?? null,
+      runtimeSceneSprites: activeBuilderScene?.sprites.map((s) => ({ ...s, layer: s.layer ?? "environmentLayer" })) ?? [],
       onActionMenuAction: (objectId, actionId) => {
         if (actionId.endsWith("-generic-collect")) {
           const snapshot =
@@ -279,13 +278,42 @@ export function PixelScene() {
         if (!selectedItemId) return null;
 
         // Check dynamic inventory items (collected layout sprites)
-        const dynamicItem = game.state.dynamicInventoryItems?.find((d) => d.id === selectedItemId);
+        const dynamicItem = gameRef.current.state.dynamicInventoryItems?.find((d) => d.id === selectedItemId);
         if (dynamicItem) {
+          // Modal-collected items have id "modal-collect-{spriteId}" — resolve source sprite
+          const sourceSpriteId = selectedItemId.startsWith("modal-collect-")
+            ? selectedItemId.slice("modal-collect-".length)
+            : selectedItemId;
           const sourceSnapshot =
-            layout.latestLayoutSpritesRef.current.find((s) => s.id === selectedItemId) ??
-            controllerRef.current?.getLayoutSpriteSnapshotById(selectedItemId);
+            layout.latestLayoutSpritesRef.current.find((s) => s.id === sourceSpriteId) ??
+            controllerRef.current?.getLayoutSpriteSnapshotById(sourceSpriteId);
           const targetObjectId = sourceSnapshot?.interaction?.collectTargetObjectId;
-          if (targetObjectId && targetObjectId === objectId) return null;
+          if (targetObjectId && targetObjectId === objectId) {
+            const action = sourceSnapshot?.interaction?.collectTargetAction ?? "openModal";
+            if (action === "giveCollectible") {
+              const src = sourceSnapshot?.interaction?.collectTargetCollectibleSrc;
+              const label = sourceSnapshot?.interaction?.collectTargetCollectibleLabel ?? "Item";
+              if (src) {
+                gameRef.current.addDynamicInventoryItem({
+                  id: `reward-${selectedItemId}-on-${objectId}`,
+                  label,
+                  iconSrc: src,
+                });
+                if (acquiredItemTimerRef.current) clearTimeout(acquiredItemTimerRef.current);
+                setAcquiredItemRef.current({ label, iconSrc: src });
+                acquiredItemTimerRef.current = setTimeout(() => {
+                  setAcquiredItemRef.current(null);
+                  acquiredItemTimerRef.current = null;
+                }, 3000);
+              }
+              if (sourceSnapshot?.interaction?.collectConsumeOnUse) {
+                gameRef.current.removeDynamicInventoryItem(selectedItemId);
+              }
+              return ""; // handled silently — no bubble, no normal click flow
+            }
+            // openModal: return null so normal click fires and opens the modal
+            return null;
+          }
           const targetSnapshot =
             layout.latestLayoutSpritesRef.current.find((s) => s.id === objectId);
           const targetLabel = targetSnapshot?.interaction?.infoTitle ?? objectId;
@@ -367,6 +395,17 @@ export function PixelScene() {
   }, [isRainEnabled]);
 
   useEffect(() => {
+    try {
+      const stored = localStorage.getItem("sound-enabled");
+      if (stored === "false") setIsSoundEnabled(false);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem("sound-enabled", String(isSoundEnabled)); } catch { /* ignore */ }
+  }, [isSoundEnabled]);
+
+  useEffect(() => {
     controllerRef.current?.setLightingEnabled(isLightingEnabled);
   }, [isLightingEnabled]);
 
@@ -435,6 +474,13 @@ export function PixelScene() {
   }, []);
 
   useEffect(() => {
+    if (hasAppliedDefaultSceneRef.current) return;
+    if (!layout.defaultSceneOptionValue) return;
+    hasAppliedDefaultSceneRef.current = true;
+    handleSceneSelectChange(layout.defaultSceneOptionValue);
+  }, [layout.defaultSceneOptionValue]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
@@ -472,22 +518,32 @@ export function PixelScene() {
       webkitRequestFullscreen?: () => Promise<void>;
     };
 
-    const isCurrentlyFullscreen =
+    const isNativeFullscreen =
       doc.fullscreenElement === shell || doc.webkitFullscreenElement === shell;
 
     const tryLockLandscape = () => {
       try {
-        const orientation = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void>; unlock?: () => void };
-        void orientation?.lock?.("landscape");
+        const orientation = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
+        const p = orientation?.lock?.("landscape");
+        if (p && typeof p.catch === "function") p.catch(() => {});
       } catch { /* not supported */ }
     };
+    const tryUnlockOrientation = () => {
+      try { (screen.orientation as ScreenOrientation & { unlock?: () => void })?.unlock?.(); } catch { /* ignore */ }
+    };
 
-    if (isCurrentlyFullscreen) {
+    if (isNativeFullscreen) {
+      // Exit native fullscreen — fullscreenchange event will set isFullscreen(false)
       if (doc.exitFullscreen) await doc.exitFullscreen();
       else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
       else setIsFullscreen(false);
-      try { (screen.orientation as ScreenOrientation & { unlock?: () => void })?.unlock?.(); } catch { /* ignore */ }
+      tryUnlockOrientation();
+    } else if (isFullscreen) {
+      // Exit faux fullscreen
+      setIsFullscreen(false);
+      tryUnlockOrientation();
     } else {
+      // Enter fullscreen: try native, fall back to faux
       try {
         if (el.requestFullscreen) { await el.requestFullscreen(); tryLockLandscape(); }
         else if (el.webkitRequestFullscreen) { await el.webkitRequestFullscreen(); tryLockLandscape(); }
@@ -553,6 +609,27 @@ export function PixelScene() {
     }
   };
 
+  const handleCollectibleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsUploadingCollectibleImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/layout-info-image", { method: "POST", body: formData });
+      if (!res.ok) return;
+      const data = (await res.json()) as { src?: string };
+      if (!data.src) return;
+      setLayoutInfoImageOptions((curr) =>
+        curr.includes(data.src!) ? curr : [...curr, data.src!].sort(),
+      );
+      updateSelectedInfoModalStage("final", { collectibleSrc: data.src });
+    } catch { /* ignore */ } finally {
+      setIsUploadingCollectibleImage(false);
+      event.target.value = "";
+    }
+  };
+
   const handleCollectIconUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -587,12 +664,16 @@ export function PixelScene() {
             onLightingChange={setIsLightingEnabled}
             onRainChange={setIsRainEnabled}
             currentSceneId={currentScene.id}
-            layoutSaveLabel={layout.layoutSaveLabel}
             layoutSaveState={layout.layoutSaveState}
             onCopyJson={() => void layout.handleCopyLayoutJson()}
             onSave={() => void layout.saveCurrentSceneLayout()}
             onReset={() => void layout.resetCurrentSceneLayout()}
+            defaultSceneOptionValue={layout.defaultSceneOptionValue}
+            onSetDefaultScene={(v) => void layout.saveDefaultScene(v)}
+            selectedSceneOptionValue={selectedSceneOptionValue}
+            onSceneSelectChange={handleSceneSelectChange}
             selectedLayoutSpriteId={layout.selectedLayoutSpriteId}
+
             setSelectedLayoutSpriteId={layout.setSelectedLayoutSpriteId}
             visibleLayoutSprites={layout.visibleLayoutSprites}
             selectedLayoutSpriteLive={selectedLayoutSpriteLive}
@@ -677,6 +758,16 @@ export function PixelScene() {
             <button
               type="button"
               className="scene-icon-trigger"
+              onClick={() => setIsSoundEnabled((c) => !c)}
+              aria-label={isSoundEnabled ? "Mute sound" : "Unmute sound"}
+              title={isSoundEnabled ? "Sound On" : "Sound Off"}
+              suppressHydrationWarning
+            >
+              {isSoundEnabled ? <Volume3 aria-hidden="true" /> : <Volume aria-hidden="true" />}
+            </button>
+            <button
+              type="button"
+              className="scene-icon-trigger"
               onClick={() => void toggleFullscreen()}
               aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
               title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
@@ -704,35 +795,13 @@ export function PixelScene() {
                   title="Logout"
                   aria-label="Logout"
                 >
-                  <span className="scene-logout-label font-pixel">exit</span>
+                  <Logout aria-hidden="true" />
                 </button>
               </>
             ) : null}
           </div>
         </div>
 
-        {auth.user ? (
-          <label className="scene-select font-pixel" htmlFor="scene-select">
-            <span className="scene-select__label">Scene</span>
-            <select
-              id="scene-select"
-              className="scene-select__input"
-              value={selectedSceneOptionValue}
-              onChange={(e) => handleSceneSelectChange(e.target.value)}
-            >
-              <option value="scene-1">Scene 1</option>
-              <option value="scene-2">Scene 2</option>
-              <option value="scene-3">Scene 3</option>
-              <option value="scene-4">Scene 4</option>
-              <option value="scene-builder">Scene Builder</option>
-              {layout.builderScenes.map((scene) => (
-                <option key={scene.id} value={`${BUILDER_SCENE_SELECT_PREFIX}${scene.id}`}>
-                  Builder: {scene.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
       </div>
 
       {/* Avatar drawer */}
@@ -833,6 +902,8 @@ export function PixelScene() {
         activeLayoutInfoPortraitSrc={infoModal.activeLayoutInfoPortraitSrc}
         activeLayoutInfoHasAlternateImage={infoModal.activeLayoutInfoHasAlternateImage}
         activeLayoutInfoHasFinalStage={infoModal.activeLayoutInfoHasFinalStage}
+        activeLayoutInfoHasCollectible={infoModal.activeLayoutInfoHasCollectible}
+        activeLayoutInfoIsCollected={infoModal.activeLayoutInfoIsCollected}
         activeLayoutInfoModalFlipped={infoModal.activeLayoutInfoModalFlipped}
         activeLayoutInfoInputValue={infoModal.activeLayoutInfoInputValue}
         onClose={infoModal.closeActiveLayoutInfoModal}
@@ -844,14 +915,19 @@ export function PixelScene() {
       <InfoEditor
         isOpen={isInfoEditorOpen}
         interaction={selectedLayoutSpriteInteraction}
+        selectedSpriteId={layout.selectedLayoutSpriteId}
+        allLayoutSprites={layout.effectiveLayoutSprites}
         selectedInfoEditorStage={selectedInfoEditorStage}
         selectedInfoEditorStageConfig={selectedInfoEditorStageConfig}
         layoutInfoImageOptions={layoutInfoImageOptions}
         isUploadingInfoImage={isUploadingInfoImage}
+        isUploadingCollectibleImage={isUploadingCollectibleImage}
         onClose={() => setIsInfoEditorOpen(false)}
         onStageChange={setSelectedInfoEditorStage}
         onStageUpdate={updateSelectedInfoModalStage}
+        onInteractionUpdate={(patch) => controllerRef.current?.updateSelectedLayoutSpriteInteraction(patch)}
         onImageUpload={handleInfoImageUpload}
+        onCollectibleImageUpload={handleCollectibleImageUpload}
       />
 
       <DrawerEditor
@@ -875,13 +951,21 @@ export function PixelScene() {
         onCollectIconUpload={handleCollectIconUpload}
       />
 
+      {layout.layoutSaveLabel ? (
+        <div
+          className={`layout-toast layout-toast--${layout.layoutSaveState} font-pixel`}
+          role="status"
+          aria-live="polite"
+        >
+          {layout.layoutSaveLabel}
+        </div>
+      ) : null}
+
       <SceneMapOverlay
         isOpen={isMapOpen}
         onClose={() => setIsMapOpen(false)}
-        onSelectIsland={(islandId) => {
-          if (islandId === "home") { setIsMapOpen(false); game.setScene("scene-1"); }
-          if (islandId === "shopify") { setIsMapOpen(false); game.setScene("scene-3"); }
-          if (islandId === "webflow") { setIsMapOpen(false); game.setScene("scene-4"); }
+        onSelectIsland={() => {
+          setIsMapOpen(false);
         }}
       />
 
@@ -898,6 +982,19 @@ export function PixelScene() {
         </div>
       ) : null}
 
+      {acquiredItem ? (
+        <div className="item-acquired-toast font-pixel" key={acquiredItem.label}>
+          <img
+            className="item-acquired-toast__icon"
+            src={acquiredItem.iconSrc}
+            alt={acquiredItem.label}
+          />
+          <div className="item-acquired-toast__text">
+            <span className="item-acquired-toast__label">Item acquired</span>
+            <span className="item-acquired-toast__name">{acquiredItem.label}</span>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

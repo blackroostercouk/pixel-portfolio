@@ -12,13 +12,18 @@ import type {
   SceneInfoModalStageId,
   SceneSpriteInteractionConfig,
 } from "@/lib/game/types";
+import type { DynamicInventoryItem } from "@/lib/game/core/game-state";
 
 export type ActiveLayoutInfoModal = {
   spriteId: string;
   interaction: NonNullable<SceneSpriteInteractionConfig>;
 };
 
-export function useInfoModal() {
+type UseInfoModalOptions = {
+  onCollect: (item: DynamicInventoryItem) => void;
+};
+
+export function useInfoModal({ onCollect }: UseInfoModalOptions) {
   const [activeLayoutInfoModal, setActiveLayoutInfoModal] =
     useState<ActiveLayoutInfoModal | null>(null);
   const [activeLayoutInfoModalStage, setActiveLayoutInfoModalStage] =
@@ -30,6 +35,7 @@ export function useInfoModal() {
   >({});
   const resolvedLayoutInfoModalStagesRef = useRef<Partial<Record<string, SceneInfoModalStageId>>>({});
   resolvedLayoutInfoModalStagesRef.current = resolvedLayoutInfoModalStages;
+  const [collectedSpriteIds, setCollectedSpriteIds] = useState<Set<string>>(new Set());
 
   const activeLayoutInfoModalConfig =
     (activeLayoutInfoModal?.interaction.infoModal as SceneInfoModalConfig | undefined) ??
@@ -49,6 +55,11 @@ export function useInfoModal() {
     activeLayoutInfoStageId === "normal" && Boolean(activeLayoutInfoStage?.secondImageSrc);
   const activeLayoutInfoHasFinalStage =
     activeLayoutInfoStageId === "updated" && hasStageContent(activeLayoutInfoModalConfig?.final);
+  const activeLayoutInfoHasCollectible =
+    activeLayoutInfoStageId === "final" && Boolean(activeLayoutInfoStage?.collectibleSrc);
+  const activeLayoutInfoIsCollected =
+    activeLayoutInfoStageId === "final" &&
+    Boolean(activeLayoutInfoModal && collectedSpriteIds.has(activeLayoutInfoModal.spriteId));
 
   const openLayoutInfoModal = (spriteId: string, interaction: NonNullable<SceneSpriteInteractionConfig>) => {
     const preferredStage = resolvedLayoutInfoModalStagesRef.current[spriteId] ?? "normal";
@@ -100,6 +111,17 @@ export function useInfoModal() {
       }));
       setActiveLayoutInfoModalStage("final");
       setActiveLayoutInfoModalFlipped(false);
+      return;
+    }
+
+    if (activeLayoutInfoStageId === "final" && activeLayoutInfoHasCollectible && !activeLayoutInfoIsCollected) {
+      if (!activeLayoutInfoModal || !activeLayoutInfoStage?.collectibleSrc) return;
+      onCollect({
+        id: `modal-collect-${activeLayoutInfoModal.spriteId}`,
+        label: activeLayoutInfoStage.collectibleLabel ?? "Item",
+        iconSrc: activeLayoutInfoStage.collectibleSrc,
+      });
+      setCollectedSpriteIds((prev) => new Set(prev).add(activeLayoutInfoModal.spriteId));
     }
   };
 
@@ -120,6 +142,8 @@ export function useInfoModal() {
     activeLayoutInfoPortraitSrc,
     activeLayoutInfoHasAlternateImage,
     activeLayoutInfoHasFinalStage,
+    activeLayoutInfoHasCollectible,
+    activeLayoutInfoIsCollected,
     openLayoutInfoModal,
     closeActiveLayoutInfoModal,
     submitActiveLayoutInfoInput,

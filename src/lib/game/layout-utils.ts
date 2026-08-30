@@ -124,19 +124,7 @@ export function createLayoutSnapshotFromConfig(sprite: SpriteConfig): LayoutSpri
   };
 }
 
-export function getBaseSceneLayoutSprites(sceneId: SceneId): LayoutSpriteSnapshot[] {
-  if (sceneId === "scene-1") {
-    return [...environmentSprites, ...effectSprites].map(createLayoutSnapshotFromConfig);
-  }
-  if (sceneId === "scene-2") {
-    return sceneTwoEnvironmentSprites.map(createLayoutSnapshotFromConfig);
-  }
-  if (sceneId === "scene-3") {
-    return sceneThreeEnvironmentSprites.map(createLayoutSnapshotFromConfig);
-  }
-  if (sceneId === "scene-4") {
-    return sceneFourEnvironmentSprites.map(createLayoutSnapshotFromConfig);
-  }
+export function getBaseSceneLayoutSprites(_sceneId: SceneId): LayoutSpriteSnapshot[] {
   return [];
 }
 
