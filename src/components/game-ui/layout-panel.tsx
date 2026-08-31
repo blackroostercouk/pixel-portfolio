@@ -10,6 +10,7 @@ import type {
   SceneSpriteInteractionConfig,
   SceneSpriteParticleConfig,
   SceneSpriteLightConfig,
+  SceneSpriteProjectionShadowConfig,
   SceneSpriteVisualConfig,
   SceneSpriteRainSplashSegmentConfig,
   SceneThreeSmokeControls,
@@ -78,6 +79,7 @@ type LayoutPanelProps = {
   selectedLayoutSpriteLight: SceneSpriteLightConfig | undefined;
   selectedLayoutSpriteAlpha: number | undefined;
   selectedLayoutSpriteParticles: SceneSpriteParticleConfig | undefined;
+  selectedLayoutSpriteShadow: SceneSpriteProjectionShadowConfig | undefined;
   selectedLayoutSpriteRuntimeType: string | undefined;
   isSmokeSelected: boolean;
   isLightSelected: boolean;
@@ -159,6 +161,7 @@ export function LayoutPanel({
   selectedLayoutSpriteLight,
   selectedLayoutSpriteAlpha,
   selectedLayoutSpriteParticles,
+  selectedLayoutSpriteShadow,
   isSmokeSelected,
   isLightSelected,
   sceneThreeSmokeControls,
@@ -677,8 +680,124 @@ export function LayoutPanel({
                   </LayoutPanelSection>
                 ) : null}
 
+                {!isLightSelected ? (
+                  <LayoutPanelSection
+                    title="Shadow"
+                    defaultOpen={selectedLayoutSpriteShadow?.enabled ?? false}
+                  >
+                    <div className="layout-panel__toggle-group">
+                      <label className="layout-panel__toggle">
+                        <input
+                          type="checkbox"
+                          checked={selectedLayoutSpriteShadow?.enabled ?? false}
+                          onChange={(e) =>
+                            controllerRef.current?.updateSelectedLayoutSpriteShadow({
+                              enabled: e.target.checked,
+                            })
+                          }
+                        />
+                        <span>Enable Shadow</span>
+                      </label>
+                    </div>
+                    {selectedLayoutSpriteShadow?.enabled ? (
+                      <>
+                        <label className="layout-panel__field">
+                          <span className="layout-panel__label">
+                            Angle {(selectedLayoutSpriteShadow?.angle ?? 0).toFixed(2)}
+                          </span>
+                          <input
+                            className="layout-panel__input"
+                            type="range"
+                            min={-200}
+                            max={200}
+                            step={1}
+                            value={Math.round((selectedLayoutSpriteShadow?.angle ?? 0) * 100)}
+                            onChange={(e) =>
+                              controllerRef.current?.updateSelectedLayoutSpriteShadow({
+                                angle: Number(e.target.value) / 100,
+                              })
+                            }
+                          />
+                        </label>
+                        <label className="layout-panel__field">
+                          <span className="layout-panel__label">
+                            Length {Math.round((selectedLayoutSpriteShadow?.length ?? 0.3) * 100)}%
+                          </span>
+                          <input
+                            className="layout-panel__input"
+                            type="range"
+                            min={5}
+                            max={150}
+                            step={1}
+                            value={Math.round((selectedLayoutSpriteShadow?.length ?? 0.3) * 100)}
+                            onChange={(e) =>
+                              controllerRef.current?.updateSelectedLayoutSpriteShadow({
+                                length: Number(e.target.value) / 100,
+                              })
+                            }
+                          />
+                        </label>
+                        <label className="layout-panel__field">
+                          <span className="layout-panel__label">
+                            Opacity {Math.round((selectedLayoutSpriteShadow?.alpha ?? 0.35) * 100)}%
+                          </span>
+                          <input
+                            className="layout-panel__input"
+                            type="range"
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={Math.round((selectedLayoutSpriteShadow?.alpha ?? 0.35) * 100)}
+                            onChange={(e) =>
+                              controllerRef.current?.updateSelectedLayoutSpriteShadow({
+                                alpha: Number(e.target.value) / 100,
+                              })
+                            }
+                          />
+                        </label>
+                      </>
+                    ) : null}
+                  </LayoutPanelSection>
+                ) : null}
+
                 {isLightSelected ? (
                   <LayoutPanelSection title="Light Settings" defaultOpen>
+                    <div className="layout-panel__field-row">
+                      <label className="layout-panel__field">
+                        <span className="layout-panel__label">Width</span>
+                        <input
+                          className="layout-panel__input"
+                          type="number"
+                          min={8}
+                          max={2000}
+                          step={4}
+                          value={selectedLayoutSpriteLive?.width ?? 200}
+                          onChange={(e) =>
+                            controllerRef.current?.setSizeSelectedLayoutSprite(
+                              Number(e.target.value),
+                              selectedLayoutSpriteLive?.height ?? 200
+                            )
+                          }
+                        />
+                      </label>
+                      <label className="layout-panel__field">
+                        <span className="layout-panel__label">Height</span>
+                        <input
+                          className="layout-panel__input"
+                          type="number"
+                          min={8}
+                          max={2000}
+                          step={4}
+                          value={selectedLayoutSpriteLive?.height ?? 200}
+                          onChange={(e) =>
+                            controllerRef.current?.setSizeSelectedLayoutSprite(
+                              selectedLayoutSpriteLive?.width ?? 200,
+                              Number(e.target.value)
+                            )
+                          }
+                        />
+                      </label>
+                    </div>
                     <label className="layout-panel__field">
                       <span className="layout-panel__label">Color</span>
                       <input

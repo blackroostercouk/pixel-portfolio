@@ -676,6 +676,16 @@ a {
   margin-top: 10px;
 }
 
+.layout-panel__field-row {
+  display: flex;
+  gap: 10px;
+}
+
+.layout-panel__field-row .layout-panel__field {
+  flex: 1;
+  min-width: 0;
+}
+
 .layout-panel__label {
   display: block;
   margin-bottom: 6px;

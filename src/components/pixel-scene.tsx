@@ -133,6 +133,10 @@ export function PixelScene() {
     selectedLayoutSpriteLive && "runtimeType" in selectedLayoutSpriteLive
       ? selectedLayoutSpriteLive.runtimeType
       : undefined;
+  const selectedLayoutSpriteShadow =
+    selectedLayoutSpriteLive && "shadow" in selectedLayoutSpriteLive
+      ? selectedLayoutSpriteLive.shadow
+      : undefined;
   const selectedLayoutSpriteAlpha =
     selectedLayoutSpriteLive && "alpha" in selectedLayoutSpriteLive
       ? selectedLayoutSpriteLive.alpha
@@ -683,6 +687,7 @@ export function PixelScene() {
             selectedLayoutSpriteLight={selectedLayoutSpriteLight}
             selectedLayoutSpriteAlpha={selectedLayoutSpriteAlpha}
             selectedLayoutSpriteParticles={selectedLayoutSpriteParticles}
+            selectedLayoutSpriteShadow={selectedLayoutSpriteShadow}
             selectedLayoutSpriteRuntimeType={selectedLayoutSpriteRuntimeType}
             isSmokeSelected={isSmokeSelected}
             isLightSelected={isLightSelected}
@@ -964,7 +969,20 @@ export function PixelScene() {
       <SceneMapOverlay
         isOpen={isMapOpen}
         onClose={() => setIsMapOpen(false)}
-        onSelectIsland={() => {
+        onSelectIsland={(islandId) => {
+          if (islandId === "home" && layout.defaultSceneOptionValue) {
+            handleSceneSelectChange(layout.defaultSceneOptionValue);
+          } else {
+            const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+            const match = layout.builderScenes.find(
+              (scene) => normalize(scene.label) === normalize(islandId)
+            );
+            if (match) {
+              layout.setActiveBuilderSceneId(match.id);
+              layout.setSelectedLayoutSpriteId(null);
+              game.setScene("scene-builder");
+            }
+          }
           setIsMapOpen(false);
         }}
       />

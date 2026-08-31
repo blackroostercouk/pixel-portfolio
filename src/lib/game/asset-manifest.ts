@@ -72,6 +72,15 @@ const sceneTwoCharacterWalkAssets = Array.from({ length: 34 }, (_, index) => {
   };
 });
 
+const sceneTwoCharacterTalkAssets = Array.from({ length: 25 }, (_, index) => {
+  const frameNumber = index.toString().padStart(3, "0");
+
+  return {
+    alias: `scene2-character-talk-${frameNumber}`,
+    src: `/assets/scene/scene2-character-talk/frame_${frameNumber}.png`,
+  };
+});
+
 const windTurbineAssets = Array.from({ length: 36 }, (_, index) => {
   const frameNumber = index.toString().padStart(3, "0");
 
@@ -162,6 +171,7 @@ export const sceneAssetsManifest: AssetsManifest = {
         ...trashMouseIdleAssets,
         ...sceneTwoCharacterAssets,
         ...sceneTwoCharacterWalkAssets,
+        ...sceneTwoCharacterTalkAssets,
         ...ufoAssets,
         ...windTurbineAssets,
       ],

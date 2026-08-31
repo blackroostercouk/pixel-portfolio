@@ -140,6 +140,13 @@ export type SceneSpriteLightConfig = {
   blendMode?: "normal" | "screen" | "add" | "lighten";
 };
 
+export type SceneSpriteProjectionShadowConfig = {
+  enabled?: boolean;
+  angle?: number;
+  length?: number;
+  alpha?: number;
+};
+
 export type SceneSpriteParticleConfig = {
   enabled?: boolean;
   count?: number;
@@ -240,6 +247,7 @@ export type SceneSpriteConfig = {
   visuals?: SceneSpriteVisualConfig;
   light?: SceneSpriteLightConfig;
   particles?: SceneSpriteParticleConfig;
+  shadow?: SceneSpriteProjectionShadowConfig;
 };
 
 export type LayoutSpriteSnapshot = {
@@ -267,6 +275,7 @@ export type LayoutSpriteSnapshot = {
   visuals?: SceneSpriteVisualConfig;
   light?: SceneSpriteLightConfig;
   particles?: SceneSpriteParticleConfig;
+  shadow?: SceneSpriteProjectionShadowConfig;
 };
 
 export type SceneThreeSmokeControls = {

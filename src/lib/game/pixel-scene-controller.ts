@@ -41,6 +41,7 @@ import type {
   SceneObjectActionMenuConfig,
   SceneSpriteLightConfig,
   SceneSpriteParticleConfig,
+  SceneSpriteProjectionShadowConfig,
   SceneSpriteRainSplashConfig,
   SceneSpriteRainSplashSegmentConfig,
   SceneSpriteVisualConfig,
@@ -99,6 +100,7 @@ type BubbleRuntime = {
   text: Text | null;
   state: BubbleState;
   visibleElapsedMs: number;
+  visibleDurationMs: number;
   typingElapsedMs: number;
   displayedTextLength: number;
   baseX: number;
@@ -134,6 +136,7 @@ type LayoutEditableSpriteRuntime = {
   displacementFilter?: DisplacementFilter;
   displacementSprite?: Sprite;
   waterElapsedMs?: number;
+  shadowSprite?: Sprite;
 };
 type CustomLightRuntime = {
   sprite: Sprite;
@@ -147,6 +150,8 @@ type SceneWalkInCharacterRuntime = {
   animator: SpriteAnimator;
   idleClip: AnimationClip;
   walkClip: AnimationClip;
+  talkClip: AnimationClip;
+  isTalking: boolean;
   idleWidth: number;
   walkWidth: number;
   walkHeight: number;
@@ -317,6 +322,23 @@ function createSceneTwoCharacterWalkClip(): AnimationClip {
   };
 }
 
+function createSceneTwoCharacterTalkClip(): AnimationClip {
+  const frames = Array.from({ length: 25 }, (_, index) => {
+    const frameNumber = index.toString().padStart(3, "0");
+
+    return `scene2-character-talk-${frameNumber}`;
+  }).map((assetId) => ({
+    texture: Assets.get(assetId) as Texture,
+    durationMs: 80,
+  }));
+
+  return {
+    id: "scene2-character-talk",
+    frames,
+    loop: true,
+  };
+}
+
 function getRenderResolution() {
   if (typeof window === "undefined") {
     return 1;
@@ -363,6 +385,7 @@ export class PixelSceneController {
     text: null,
     state: "hidden",
     visibleElapsedMs: 0,
+    visibleDurationMs: BUBBLE_VISIBLE_MS,
     typingElapsedMs: 0,
     displayedTextLength: 0,
     baseX: 960,
@@ -378,6 +401,7 @@ export class PixelSceneController {
     text: null,
     state: "hidden",
     visibleElapsedMs: 0,
+    visibleDurationMs: BUBBLE_VISIBLE_MS,
     typingElapsedMs: 0,
     displayedTextLength: 0,
     baseX: 1098,
@@ -532,6 +556,7 @@ export class PixelSceneController {
       text: null,
       state: "hidden",
       visibleElapsedMs: 0,
+    visibleDurationMs: BUBBLE_VISIBLE_MS,
       typingElapsedMs: 0,
       displayedTextLength: 0,
       baseX: 960,
@@ -547,6 +572,7 @@ export class PixelSceneController {
       text: null,
       state: "hidden",
       visibleElapsedMs: 0,
+    visibleDurationMs: BUBBLE_VISIBLE_MS,
       typingElapsedMs: 0,
       displayedTextLength: 0,
       baseX: 1098,
@@ -786,6 +812,61 @@ export class PixelSceneController {
     this.emitLayoutStateChange();
   }
 
+  updateSelectedLayoutSpriteShadow(
+    nextShadow: Partial<SceneSpriteProjectionShadowConfig>,
+  ) {
+    const selectedSprite = this.selectedLayoutSpriteId
+      ? this.layoutEditableSpritesById.get(this.selectedLayoutSpriteId)
+      : null;
+
+    if (!selectedSprite) {
+      return;
+    }
+
+    const currentShadow = selectedSprite.config.shadow ?? {};
+    selectedSprite.config.shadow = { ...currentShadow, ...nextShadow };
+
+    this.applyShadowToLayoutSprite(selectedSprite);
+    this.emitLayoutStateChange();
+  }
+
+  private applyShadowToLayoutSprite(entry: LayoutEditableSpriteRuntime) {
+    const shadow = entry.config.shadow;
+    const main = entry.sprite;
+
+    if (!shadow?.enabled) {
+      if (entry.shadowSprite) {
+        entry.shadowSprite.parent?.removeChild(entry.shadowSprite);
+        entry.shadowSprite.destroy();
+        entry.shadowSprite = undefined;
+      }
+      return;
+    }
+
+    if (!entry.shadowSprite) {
+      const s = new Sprite(main.texture);
+      s.tint = 0x000000;
+      s.label = `${entry.config.id}__shadow`;
+      entry.shadowSprite = s;
+      main.parent?.addChild(s);
+    }
+
+    const s = entry.shadowSprite;
+    const angle = shadow.angle ?? 0;
+    const length = shadow.length ?? 0.3;
+    const alpha = shadow.alpha ?? 0.35;
+
+    s.texture = main.texture;
+    s.anchor.set(main.anchor.x, 0);
+    const bottomY = main.position.y + Math.abs(main.height) * (1 - main.anchor.y);
+    s.position.set(main.position.x, bottomY);
+    s.width = Math.abs(main.width);
+    s.height = Math.abs(main.height) * length;
+    s.skew.x = angle;
+    s.alpha = alpha;
+    s.zIndex = (main.zIndex ?? 0) - 0.5;
+  }
+
   setSelectedLayoutSpriteRainSplashSegments(
     segments: SceneSpriteRainSplashSegmentConfig[],
   ) {
@@ -819,11 +900,56 @@ export class PixelSceneController {
     const nextWidth = Math.max(8, Math.round(Math.abs(selectedSprite.sprite.width) * multiplier));
     const nextHeight = Math.max(8, Math.round(Math.abs(selectedSprite.sprite.height) * multiplier));
 
+    selectedSprite.config.width = nextWidth;
+    selectedSprite.config.height = nextHeight;
+
+    const scaleRuntimeType = selectedSprite.config.runtimeType;
+    if ((scaleRuntimeType === "character" || scaleRuntimeType === "character-idle") && this.sceneWalkInCharacterRuntime) {
+      const cr = this.sceneWalkInCharacterRuntime;
+      cr.idleWidth = nextWidth;
+      cr.height = nextHeight;
+      cr.walkWidth = Math.round(nextWidth * 1.31);
+      cr.walkHeight = Math.round(nextHeight * 1.05);
+    }
+
     if (selectedSprite.animator) {
       selectedSprite.animator.setSize(nextWidth, nextHeight);
     } else {
       selectedSprite.sprite.width = nextWidth;
       selectedSprite.sprite.height = nextHeight;
+    }
+    this.emitLayoutStateChange();
+  }
+
+  setSizeSelectedLayoutSprite(width: number, height: number) {
+    const w = Math.max(8, Math.round(width));
+    const h = Math.max(8, Math.round(height));
+
+    const selectedSprite = this.selectedLayoutSpriteId
+      ? this.layoutEditableSpritesById.get(this.selectedLayoutSpriteId)
+      : null;
+
+    if (!selectedSprite) return;
+
+    selectedSprite.config.width = w;
+    selectedSprite.config.height = h;
+
+    const runtimeType = selectedSprite.config.runtimeType;
+    const isWalkCharacter = runtimeType === "character" || runtimeType === "character-idle";
+
+    if (isWalkCharacter && this.sceneWalkInCharacterRuntime) {
+      const cr = this.sceneWalkInCharacterRuntime;
+      cr.idleWidth = w;
+      cr.height = h;
+      cr.walkWidth = Math.round(w * 1.31);
+      cr.walkHeight = Math.round(h * 1.05);
+    }
+
+    if (selectedSprite.animator) {
+      selectedSprite.animator.setSize(w, h);
+    } else {
+      selectedSprite.sprite.width = w;
+      selectedSprite.sprite.height = h;
     }
     this.emitLayoutStateChange();
   }
@@ -1332,6 +1458,14 @@ export class PixelSceneController {
           targetLayer.sortChildren();
         }
       }
+
+      if (this.sceneWalkInCharacterRuntime) {
+        const walkInShadow = new WalkInCharacterShadowSystem();
+        layers.environmentLayer.addChild(walkInShadow.container);
+        this.walkInCharacterShadowSystem = walkInShadow;
+        this.effectSystems = [...this.effectSystems, walkInShadow];
+        this.syncWalkInCharacterShadow();
+      }
     }
 
     if (sceneDefinition.enableActorSprites) {
@@ -1681,11 +1815,11 @@ export class PixelSceneController {
     });
     sprite.on("pointerover", () => this.handleInteractiveHoverChange(true));
     sprite.on("pointerout", () => this.handleInteractiveHoverChange(false));
-    this.layoutEditableSpritesById.set(config.id, {
-      sprite,
-      config,
-      animator,
-    });
+    const entry: LayoutEditableSpriteRuntime = { sprite, config, animator };
+    this.layoutEditableSpritesById.set(config.id, entry);
+    if (config.shadow?.enabled) {
+      this.applyShadowToLayoutSprite(entry);
+    }
   }
 
   private rebuildActionMenuIcons() {
@@ -1777,6 +1911,7 @@ export class PixelSceneController {
       visuals: config.visuals,
       light: config.light,
       particles: config.particles,
+      shadow: config.shadow,
     };
   }
 
@@ -2073,6 +2208,7 @@ export class PixelSceneController {
 
     const idleClip = createSceneTwoCharacterClip();
     const walkClip = createSceneTwoCharacterWalkClip();
+    const talkClip = createSceneTwoCharacterTalkClip();
     const texture = walkClip.frames[0]?.texture ?? idleClip.frames[0]?.texture;
     const sprite = new Sprite(texture);
     const idleHeight = config.height;
@@ -2110,6 +2246,8 @@ export class PixelSceneController {
       animator,
       idleClip,
       walkClip,
+      talkClip,
+      isTalking: false,
       idleWidth,
       walkWidth,
       walkHeight,
@@ -2380,9 +2518,14 @@ export class PixelSceneController {
 
     runtime.inputDirection = direction;
 
+    if (direction !== 0 && runtime.isTalking) {
+      runtime.isTalking = false;
+    }
+
     if (direction === 0 && runtime.targetX === null) {
+      const shouldResumeTalk = runtime.isTalking;
       runtime.animator.setSize(runtime.idleWidth, runtime.height);
-      runtime.animator.play(runtime.idleClip);
+      runtime.animator.play(shouldResumeTalk ? runtime.talkClip : runtime.idleClip);
       runtime.sprite.scale.x = Math.abs(runtime.sprite.scale.x);
       this.syncWalkInCharacterShadow();
       this.syncSceneWalkCharacterRainSplashes();
@@ -2853,6 +2996,15 @@ export class PixelSceneController {
     bubble.typingElapsedMs = 0;
     bubble.displayedTextLength = 0;
 
+    if (target === "character" && this.sceneWalkInCharacterRuntime) {
+      const cr = this.sceneWalkInCharacterRuntime;
+      if (!cr.isTalking && cr.inputDirection === 0) {
+        cr.isTalking = true;
+        cr.animator.setSize(cr.idleWidth, cr.height);
+        cr.animator.play(cr.talkClip);
+      }
+    }
+
     if (bubble.text) {
       const fullText =
         target === "character"
@@ -2863,6 +3015,9 @@ export class PixelSceneController {
 
       if (target === "character" && fullText) {
         this.configureCharacterBubbleLayout(fullText);
+        bubble.visibleDurationMs = Math.max(1600, fullText.length * CHARACTER_TYPING_STEP_MS + 600);
+      } else {
+        bubble.visibleDurationMs = BUBBLE_VISIBLE_MS;
       }
 
       bubble.text.text = "";
@@ -2883,8 +3038,18 @@ export class PixelSceneController {
     bubbleSprite.visible = false;
     bubble.state = "hidden";
     bubble.visibleElapsedMs = 0;
+    bubble.visibleDurationMs = BUBBLE_VISIBLE_MS;
     bubble.typingElapsedMs = 0;
     bubble.displayedTextLength = 0;
+
+    if (target === "character" && this.sceneWalkInCharacterRuntime) {
+      const cr = this.sceneWalkInCharacterRuntime;
+      if (cr.isTalking) {
+        cr.isTalking = false;
+        cr.animator.setSize(cr.idleWidth, cr.height);
+        cr.animator.play(cr.idleClip);
+      }
+    }
 
     if (bubble.text) {
       bubble.text.text = "";
@@ -2929,7 +3094,7 @@ export class PixelSceneController {
       bubble.visibleElapsedMs += deltaMs;
       this.updateCharacterBubbleTyping(target, deltaMs);
 
-      if (bubble.visibleElapsedMs >= BUBBLE_VISIBLE_MS) {
+      if (bubble.visibleElapsedMs >= bubble.visibleDurationMs) {
         bubble.state = "fadingOut";
       }
       return;
