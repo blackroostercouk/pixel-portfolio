@@ -17,6 +17,11 @@ export type DynamicInventoryItem = {
   id: string;
   label: string;
   iconSrc: string;
+  targetObjectId?: string;
+  targetAction?: "openModal" | "giveCollectible";
+  targetCollectibleSrc?: string;
+  targetCollectibleLabel?: string;
+  consumeOnUse?: boolean;
 };
 
 export type GameState = {

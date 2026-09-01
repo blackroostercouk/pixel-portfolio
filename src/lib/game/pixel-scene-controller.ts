@@ -1,4 +1,5 @@
 import {
+  AnimatedSprite,
   Application,
   Assets,
   ColorMatrixFilter,
@@ -250,6 +251,27 @@ function createCharacterIdleClip(): AnimationClip {
     frames,
     loop: true,
   };
+}
+
+function createStatueAnimatedSprite(config: SceneSpriteConfig): AnimatedSprite {
+  const textures = Array.from({ length: 36 }, (_, i) => {
+    const alias = `statue-${i.toString().padStart(3, "0")}`;
+    return Assets.get(alias) as Texture;
+  });
+  const sprite = new AnimatedSprite(textures);
+  sprite.label = config.id;
+  sprite.animationSpeed = config.animSpeed ?? 0.3;
+  sprite.loop = false;
+  sprite.anchor.set(config.anchorX ?? 0.5, config.anchorY ?? 1);
+  sprite.position.set(config.x, config.y);
+  sprite.width = config.width;
+  sprite.height = config.height;
+  sprite.zIndex = config.zIndex ?? 0;
+  sprite.alpha = config.alpha ?? 1;
+  sprite.rotation = config.rotation ?? 0;
+  const restFrame = config.animStopFrame ?? 0;
+  sprite.gotoAndStop(restFrame);
+  return sprite;
 }
 
 function createWindTurbineClip(): AnimationClip {
@@ -812,6 +834,34 @@ export class PixelSceneController {
     this.emitLayoutStateChange();
   }
 
+  updateSelectedLayoutSpriteAnimSpeed(speed: number) {
+    const entry = this.selectedLayoutSpriteId
+      ? this.layoutEditableSpritesById.get(this.selectedLayoutSpriteId) : null;
+    if (!entry) return;
+    entry.config.animSpeed = speed;
+    if (entry.sprite instanceof AnimatedSprite) entry.sprite.animationSpeed = speed;
+    this.emitLayoutStateChange();
+  }
+
+  updateSelectedLayoutSpriteAnimStopFrame(frame: number) {
+    const entry = this.selectedLayoutSpriteId
+      ? this.layoutEditableSpritesById.get(this.selectedLayoutSpriteId) : null;
+    if (!entry) return;
+    entry.config.animStopFrame = frame;
+    if (entry.sprite instanceof AnimatedSprite && !entry.sprite.playing) {
+      entry.sprite.gotoAndStop(frame);
+    }
+    this.emitLayoutStateChange();
+  }
+
+  updateSelectedLayoutSpriteAnimClickFrame(frame: number) {
+    const entry = this.selectedLayoutSpriteId
+      ? this.layoutEditableSpritesById.get(this.selectedLayoutSpriteId) : null;
+    if (!entry) return;
+    entry.config.animClickFrame = frame;
+    this.emitLayoutStateChange();
+  }
+
   updateSelectedLayoutSpriteShadow(
     nextShadow: Partial<SceneSpriteProjectionShadowConfig>,
   ) {
@@ -828,6 +878,39 @@ export class PixelSceneController {
 
     this.applyShadowToLayoutSprite(selectedSprite);
     this.emitLayoutStateChange();
+  }
+
+  private clickAnimationTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private statueToggleState = new Map<string, 0 | 1>();
+
+  private playClickAnimation(spriteId: string, frames: string[], frameMs: number) {
+    const entry = this.layoutEditableSpritesById.get(spriteId);
+    if (!entry) return;
+
+    // Cancel any in-progress animation for this sprite
+    const existing = this.clickAnimationTimers.get(spriteId);
+    if (existing !== undefined) clearTimeout(existing);
+
+    const sprite = entry.sprite;
+    const originalTexture = sprite.texture;
+
+    const playFrame = (index: number) => {
+      if (index >= frames.length) {
+        sprite.texture = originalTexture;
+        this.clickAnimationTimers.delete(spriteId);
+        return;
+      }
+      const src = frames[index]!;
+      void Assets.load(src).then((texture: Texture) => {
+        sprite.texture = texture;
+        sprite.width = entry.config.width;
+        sprite.height = entry.config.height;
+        const timer = setTimeout(() => playFrame(index + 1), frameMs);
+        this.clickAnimationTimers.set(spriteId, timer);
+      });
+    };
+
+    playFrame(0);
   }
 
   private applyShadowToLayoutSprite(entry: LayoutEditableSpriteRuntime) {
@@ -1344,6 +1427,7 @@ export class PixelSceneController {
         const isRuntimeCharacterIdle = spriteConfig.runtimeType === "character-idle";
         const isRuntimeCat = spriteConfig.runtimeType === "cat";
         const isRuntimeWindTurbine = spriteConfig.runtimeType === "wind-turbine";
+        const isRuntimeStatue = spriteConfig.runtimeType === "statue";
         const sprite =
           spriteConfig.id === "trash-active"
             ? this.createAnimatedEnvironmentSprite(spriteConfig, createTrashMouseIdleClip())
@@ -1358,6 +1442,8 @@ export class PixelSceneController {
                 ? this.createCustomLightSprite(spriteConfig)
                 : isRuntimeWindTurbine
                   ? this.createAnimatedEnvironmentSprite(spriteConfig, createWindTurbineClip())
+              : isRuntimeStatue
+                  ? createStatueAnimatedSprite(spriteConfig)
               : spriteConfig.id === "scene3-cat" ||
                   spriteConfig.id === "scene4-cat" ||
                   isRuntimeCat
@@ -1809,6 +1895,51 @@ export class PixelSceneController {
     );
     sprite.on("pointertap", (event: FederatedPointerEvent) => {
       if (!this.isLayoutModeEnabled) {
+        if (sprite instanceof AnimatedSprite) {
+          const restFrame = config.animStopFrame ?? 0;
+          const clickFrame = config.animClickFrame ?? (sprite.totalFrames - 1);
+          const speed = config.animSpeed ?? 0.3;
+          const currentState = this.statueToggleState.get(config.id) ?? 0;
+          sprite.onComplete = undefined;
+          if (currentState === 0) {
+            this.statueToggleState.set(config.id, 1);
+            sprite.animationSpeed = speed;
+            sprite.gotoAndPlay(restFrame);
+            const ticker = this.app?.ticker;
+            if (ticker) {
+              const stopTicker = () => {
+                if (sprite.currentFrame >= clickFrame) {
+                  sprite.gotoAndStop(clickFrame);
+                  ticker.remove(stopTicker);
+                }
+              };
+              ticker.add(stopTicker);
+            }
+          } else {
+            this.statueToggleState.set(config.id, 0);
+            sprite.animationSpeed = -speed;
+            sprite.gotoAndPlay(clickFrame);
+            const ticker = this.app?.ticker;
+            if (ticker) {
+              const stopTicker = () => {
+                if (sprite.currentFrame <= restFrame) {
+                  sprite.gotoAndStop(restFrame);
+                  sprite.animationSpeed = speed;
+                  ticker.remove(stopTicker);
+                }
+              };
+              ticker.add(stopTicker);
+            }
+          }
+          event.stopPropagation();
+          return;
+        }
+        const frames = config.interaction?.clickAnimateFrames;
+        if (frames && frames.length > 0) {
+          this.playClickAnimation(config.id, frames, config.interaction?.clickAnimateFrameMs ?? 80);
+          event.stopPropagation();
+          return;
+        }
         this.handleObjectActionMenuClick(config.id, event);
         event.stopPropagation();
       }
@@ -1912,6 +2043,9 @@ export class PixelSceneController {
       light: config.light,
       particles: config.particles,
       shadow: config.shadow,
+      animSpeed: config.animSpeed,
+      animStopFrame: config.animStopFrame,
+      animClickFrame: config.animClickFrame,
     };
   }
 
@@ -2451,8 +2585,9 @@ export class PixelSceneController {
         }
 
         const widthScale = Math.max(rainSplash.widthRatio ?? 1, 0);
-        const baseSplashMinX = left + width * (rainSplash.splashLeft ?? 0.25);
-        const baseSplashMaxX = left + width * (rainSplash.splashRight ?? 0.75);
+        const splashXOffset = rainSplash.splashXOffset ?? 0;
+        const baseSplashMinX = left + width * (rainSplash.splashLeft ?? 0.25) + splashXOffset;
+        const baseSplashMaxX = left + width * (rainSplash.splashRight ?? 0.75) + splashXOffset;
         const baseSplashCenterX = (baseSplashMinX + baseSplashMaxX) * 0.5;
         const baseSplashHalfWidth = Math.max((baseSplashMaxX - baseSplashMinX) * 0.5, 0);
         const scaledSplashHalfWidth = baseSplashHalfWidth * widthScale;

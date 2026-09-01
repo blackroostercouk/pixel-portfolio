@@ -1,6 +1,121 @@
 "use client";
 
-import { type ReactNode, type ChangeEvent } from "react";
+import { type ReactNode, type ChangeEvent, useState } from "react";
+
+function ClickAnimateFramesEditor({
+  frames,
+  frameMs,
+  onFramesChange,
+  onFrameMsChange,
+}: {
+  frames: string[];
+  frameMs: number;
+  onFramesChange: (frames: string[]) => void;
+  onFrameMsChange: (ms: number) => void;
+}) {
+  const [manualUrl, setManualUrl] = useState("");
+  const [pattern, setPattern] = useState("");
+  const [patternCount, setPatternCount] = useState(36);
+  const [patternStart, setPatternStart] = useState(0);
+
+  const addManual = () => {
+    const url = manualUrl.trim();
+    if (!url) return;
+    onFramesChange([...frames, url]);
+    setManualUrl("");
+  };
+
+  const addPattern = () => {
+    if (!pattern.trim()) return;
+    const generated = Array.from({ length: patternCount }, (_, i) => {
+      const n = patternStart + i;
+      return pattern.replace("{n}", n.toString().padStart(3, "0"));
+    });
+    onFramesChange([...frames, ...generated]);
+    setPattern("");
+  };
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <span className="layout-panel__label">Click Animation Frames</span>
+      <p className="layout-panel__hint">Tıklanınca sırayla oynatılacak resimler.</p>
+
+      {frames.map((src, i) => (
+        <div key={i} className="layout-panel__field" style={{ gap: 4, alignItems: "center" }}>
+          <span className="layout-panel__hint" style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {i + 1}. {src.split("/").pop()}
+          </span>
+          <button
+            type="button"
+            className="layout-panel__action"
+            style={{ padding: "2px 8px", flexShrink: 0 }}
+            onClick={() => onFramesChange(frames.filter((_, idx) => idx !== i))}
+          >✕</button>
+        </div>
+      ))}
+
+      <p className="layout-panel__hint" style={{ marginTop: 6 }}>Tek URL ekle:</p>
+      <div className="layout-panel__field" style={{ gap: 4 }}>
+        <input
+          className="layout-panel__input"
+          type="text"
+          value={manualUrl}
+          placeholder="/assets/scene/statue/frame_000.webp"
+          onChange={(e) => setManualUrl(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addManual()}
+        />
+        <button type="button" className="layout-panel__action" style={{ flexShrink: 0 }} onClick={addManual}>+</button>
+      </div>
+
+      <p className="layout-panel__hint" style={{ marginTop: 6 }}>Pattern ile toplu ekle:</p>
+      <p className="layout-panel__hint">{"{n}"} → 000, 001, 002...</p>
+      <input
+        className="layout-panel__input"
+        type="text"
+        value={pattern}
+        placeholder="/assets/scene/statue/frame_{n}.webp"
+        onChange={(e) => setPattern(e.target.value)}
+        style={{ marginBottom: 4 }}
+      />
+      <div className="layout-panel__field" style={{ gap: 4 }}>
+        <label className="layout-panel__field" style={{ flex: 1 }}>
+          <span className="layout-panel__label">Start</span>
+          <input className="layout-panel__input" type="number" min={0} value={patternStart}
+            onChange={(e) => setPatternStart(Number(e.target.value))} />
+        </label>
+        <label className="layout-panel__field" style={{ flex: 1 }}>
+          <span className="layout-panel__label">Count</span>
+          <input className="layout-panel__input" type="number" min={1} value={patternCount}
+            onChange={(e) => setPatternCount(Number(e.target.value))} />
+        </label>
+        <button type="button" className="layout-panel__action" style={{ alignSelf: "flex-end", flexShrink: 0 }} onClick={addPattern}>Add</button>
+      </div>
+
+      {frames.length > 0 && (
+        <>
+          <label className="layout-panel__field" style={{ marginTop: 4 }}>
+            <span className="layout-panel__label">Frame Duration (ms)</span>
+            <input
+              className="layout-panel__input"
+              type="number"
+              min={16}
+              max={2000}
+              step={10}
+              value={frameMs}
+              onChange={(e) => onFrameMsChange(Number(e.target.value))}
+            />
+          </label>
+          <button
+            type="button"
+            className="layout-panel__action"
+            style={{ marginTop: 4, width: "100%" }}
+            onClick={() => onFramesChange([])}
+          >Clear All Frames</button>
+        </>
+      )}
+    </div>
+  );
+}
 import { Copy, Save, Reload, Home, ZoomIn, ZoomOut, FlipHorizontal2, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUp, ArrowDown, Trash } from "pixelarticons/react";
 import { BUILDER_ANIMATED_PRESET_OPTIONS, LIGHT_PARTICLE_PRESETS, BUILDER_SCENE_SELECT_PREFIX } from "@/lib/game/builder-constants";
 import { createDefaultRainSplashConfig } from "@/lib/game/layout-utils";
@@ -625,6 +740,7 @@ export function LayoutPanel({
                       </button>
                     </div>
                   ) : null}
+
                 </LayoutPanelSection>
 
                 {!isLightSelected ? (
@@ -757,6 +873,61 @@ export function LayoutPanel({
                         </label>
                       </>
                     ) : null}
+                  </LayoutPanelSection>
+                ) : null}
+
+                {selectedLayoutSpriteLive?.runtimeType === "statue" ? (
+                  <LayoutPanelSection title="Animation" defaultOpen>
+                    <label className="layout-panel__field">
+                      <span className="layout-panel__label">
+                        Speed {(selectedLayoutSpriteLive?.animSpeed ?? 0.3).toFixed(2)}
+                      </span>
+                      <input
+                        className="layout-panel__input"
+                        type="range"
+                        min={1}
+                        max={100}
+                        step={1}
+                        value={Math.round((selectedLayoutSpriteLive?.animSpeed ?? 0.3) * 100)}
+                        onChange={(e) =>
+                          controllerRef.current?.updateSelectedLayoutSpriteAnimSpeed(
+                            Number(e.target.value) / 100
+                          )
+                        }
+                      />
+                    </label>
+                    <label className="layout-panel__field">
+                      <span className="layout-panel__label">Rest Frame (0–35)</span>
+                      <input
+                        className="layout-panel__input"
+                        type="number"
+                        min={0}
+                        max={35}
+                        step={1}
+                        value={selectedLayoutSpriteLive?.animStopFrame ?? 0}
+                        onChange={(e) =>
+                          controllerRef.current?.updateSelectedLayoutSpriteAnimStopFrame(
+                            Number(e.target.value)
+                          )
+                        }
+                      />
+                    </label>
+                    <label className="layout-panel__field">
+                      <span className="layout-panel__label">Click Frame (0–35)</span>
+                      <input
+                        className="layout-panel__input"
+                        type="number"
+                        min={0}
+                        max={35}
+                        step={1}
+                        value={selectedLayoutSpriteLive?.animClickFrame ?? 35}
+                        onChange={(e) =>
+                          controllerRef.current?.updateSelectedLayoutSpriteAnimClickFrame(
+                            Number(e.target.value)
+                          )
+                        }
+                      />
+                    </label>
                   </LayoutPanelSection>
                 ) : null}
 
@@ -1105,6 +1276,7 @@ export function LayoutPanel({
                           ["Splash Left", "splashLeft", 0, 1, 0.01],
                           ["Splash Right", "splashRight", 0, 1, 0.01],
                           ["Splash Y", "splashY", 0, 1, 0.01],
+                          ["Splash X Offset", "splashXOffset", -500, 500, 1],
                         ] as const
                       ).map(([label, field, min, max, step]) => (
                         <label key={field} className="layout-panel__field">

@@ -42,6 +42,9 @@ export function useSceneLayoutEditor(
   const hasLoadedSceneOverridesRef = useRef(false);
   const lastPersistedSceneOverridesJsonRef = useRef("{}");
   const autoPersistSceneOverridesTimeoutRef = useRef<number | null>(null);
+  const hasLoadedBuilderScenesRef = useRef(false);
+  const lastPersistedBuilderScenesJsonRef = useRef("[]");
+  const autoPersistBuilderScenesTimeoutRef = useRef<number | null>(null);
 
   // ─── Layout sprites ───────────────────────────────────────────────────
   const [layoutSprites, setLayoutSprites] = useState<LayoutSpriteSnapshot[]>([]);
@@ -177,6 +180,36 @@ export function useSceneLayoutEditor(
     };
   }, [sceneOverrides]);
 
+  // ─── Auto-persist builder scenes ─────────────────────────────────────
+  useEffect(() => {
+    if (!hasLoadedBuilderScenesRef.current) return;
+
+    if (autoPersistBuilderScenesTimeoutRef.current !== null) {
+      window.clearTimeout(autoPersistBuilderScenesTimeoutRef.current);
+    }
+
+    const nextJson = JSON.stringify(builderScenes);
+    if (nextJson === lastPersistedBuilderScenesJsonRef.current) return;
+
+    autoPersistBuilderScenesTimeoutRef.current = window.setTimeout(() => {
+      void persistBuilderScenes(builderScenes)
+        .then(() => {
+          lastPersistedBuilderScenesJsonRef.current = JSON.stringify(builderScenes);
+        })
+        .catch(() => { /* silent — manual Save still works */ })
+        .finally(() => {
+          autoPersistBuilderScenesTimeoutRef.current = null;
+        });
+    }, 220);
+
+    return () => {
+      if (autoPersistBuilderScenesTimeoutRef.current !== null) {
+        window.clearTimeout(autoPersistBuilderScenesTimeoutRef.current);
+        autoPersistBuilderScenesTimeoutRef.current = null;
+      }
+    };
+  }, [builderScenes]);
+
   // ─── Sync layout sprites when scene changes ───────────────────────────
   useEffect(() => {
     if (currentSceneId === "scene-builder") {
@@ -206,12 +239,15 @@ export function useSceneLayoutEditor(
         const scenes = data.scenes ?? [];
         if (!cancelled && scenes.length > 0) {
           setBuilderScenes(scenes);
+          lastPersistedBuilderScenesJsonRef.current = JSON.stringify(scenes);
           setActiveBuilderSceneId((current) =>
             scenes.some((s) => s.id === current) ? current : scenes[0]!.id,
           );
           setBuilderSceneRenderVersion((v) => v + 1);
         }
-      } catch { /* ignore */ }
+      } catch { /* ignore */ } finally {
+        if (!cancelled) hasLoadedBuilderScenesRef.current = true;
+      }
     };
     void load();
     return () => { cancelled = true; };
@@ -725,6 +761,14 @@ function buildAnimatedPresetSprite(
     return {
       id: nextId, assetId: "windTurbine", runtimeType: "wind-turbine",
       x: 960, y: 980, width: 306, height: 249,
+      anchorX: 0.5, anchorY: 1,
+      layer: "environmentLayer", zIndex: 2,
+    };
+  }
+  if (preset === "statue") {
+    return {
+      id: nextId, assetId: "statue", runtimeType: "statue",
+      x: 960, y: 1000, width: 260, height: 299,
       anchorX: 0.5, anchorY: 1,
       layer: "environmentLayer", zIndex: 2,
     };

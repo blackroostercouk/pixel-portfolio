@@ -1,13 +1,14 @@
 export const BUILDER_SCENE_SELECT_PREFIX = "builder:";
 
 export type BuilderAssetType = "prop" | "animated";
-export type BuilderAnimatedPreset = "main-character" | "character-idle" | "cat" | "wind-turbine";
+export type BuilderAnimatedPreset = "main-character" | "character-idle" | "cat" | "wind-turbine" | "statue";
 
 export const BUILDER_ANIMATED_PRESET_OPTIONS: Array<{ id: BuilderAnimatedPreset; label: string }> = [
   { id: "main-character", label: "Main Character" },
   { id: "character-idle", label: "Character Idle" },
   { id: "cat", label: "Cat" },
   { id: "wind-turbine", label: "Wind Turbine" },
+  { id: "statue", label: "Statue" },
 ];
 
 export const LIGHT_PARTICLE_PRESETS = {

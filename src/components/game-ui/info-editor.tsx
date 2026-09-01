@@ -180,6 +180,61 @@ export function InfoEditor({
                         }
                       />
                     </label>
+
+                    <p className="layout-panel__hint" style={{ marginTop: 8 }}>
+                      Bu reward item başka bir objeyle de kullanılabilir:
+                    </p>
+
+                    <label className="layout-panel__field">
+                      <span className="layout-panel__label">Reward → Target Object</span>
+                      <select
+                        className="layout-panel__select"
+                        value={interaction?.rewardTargetObjectId ?? NONE_COLLECTIBLE_VALUE}
+                        onChange={(e) =>
+                          onInteractionUpdate({
+                            rewardTargetObjectId: e.target.value === NONE_COLLECTIBLE_VALUE ? undefined : e.target.value,
+                          })
+                        }
+                      >
+                        <option value={NONE_COLLECTIBLE_VALUE}>None</option>
+                        {targetOptions.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.interaction?.infoTitle ?? s.id}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    {interaction?.rewardTargetObjectId ? (
+                      <>
+                        <label className="layout-panel__field">
+                          <span className="layout-panel__label">Reward → Action</span>
+                          <select
+                            className="layout-panel__select"
+                            value={interaction?.rewardTargetAction ?? "openModal"}
+                            onChange={(e) =>
+                              onInteractionUpdate({
+                                rewardTargetAction: e.target.value as "openModal" | "giveCollectible",
+                              })
+                            }
+                          >
+                            <option value="openModal">Open modal on target</option>
+                            <option value="giveCollectible">Give another item</option>
+                          </select>
+                        </label>
+
+                        <label className="layout-panel__field">
+                          <input
+                            type="checkbox"
+                            checked={interaction?.rewardConsumeOnUse ?? false}
+                            onChange={(e) =>
+                              onInteractionUpdate({ rewardConsumeOnUse: e.target.checked || undefined })
+                            }
+                          />
+                          <span className="layout-panel__label">Remove from inventory after use</span>
+                        </label>
+                      </>
+                    ) : null}
                   </>
                 ) : null}
               </>

@@ -67,6 +67,7 @@ export type SceneAssetId =
   | "coffee"
   | "sign"
   | "ufo"
+  | "statue"
   | "logo"
   | "bubble"
   | "bubbleMouse"
@@ -114,6 +115,7 @@ export type SceneSpriteRainSplashSegmentConfig = {
   zoneBottom?: number;
   splashLeft?: number;
   splashRight?: number;
+  splashXOffset?: number;
   splashY?: number;
   splashLayer?: "scene" | "overlay";
   randomSpread?: number;
@@ -172,6 +174,13 @@ export type SceneSpriteInteractionConfig = {
   collectTargetCollectibleSrc?: string;
   collectTargetCollectibleLabel?: string;
   collectConsumeOnUse?: boolean;
+  rewardTargetObjectId?: string;
+  rewardTargetAction?: "openModal" | "giveCollectible";
+  rewardTargetCollectibleSrc?: string;
+  rewardTargetCollectibleLabel?: string;
+  rewardConsumeOnUse?: boolean;
+  clickAnimateFrames?: string[];
+  clickAnimateFrameMs?: number;
   bubbleMessage?: string;
   infoTitle?: string;
   infoDescription?: string;
@@ -220,7 +229,8 @@ export type SceneRuntimeSpriteType =
   | "character-idle"
   | "cat"
   | "light"
-  | "wind-turbine";
+  | "wind-turbine"
+  | "statue";
 
 export type SceneSpriteConfig = {
   id: string;
@@ -248,6 +258,9 @@ export type SceneSpriteConfig = {
   light?: SceneSpriteLightConfig;
   particles?: SceneSpriteParticleConfig;
   shadow?: SceneSpriteProjectionShadowConfig;
+  animSpeed?: number;
+  animStopFrame?: number;
+  animClickFrame?: number;
 };
 
 export type LayoutSpriteSnapshot = {
@@ -276,6 +289,9 @@ export type LayoutSpriteSnapshot = {
   light?: SceneSpriteLightConfig;
   particles?: SceneSpriteParticleConfig;
   shadow?: SceneSpriteProjectionShadowConfig;
+  animSpeed?: number;
+  animStopFrame?: number;
+  animClickFrame?: number;
 };
 
 export type SceneThreeSmokeControls = {

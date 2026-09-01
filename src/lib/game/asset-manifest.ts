@@ -81,6 +81,14 @@ const sceneTwoCharacterTalkAssets = Array.from({ length: 25 }, (_, index) => {
   };
 });
 
+const statueAssets = Array.from({ length: 36 }, (_, index) => {
+  const frameNumber = index.toString().padStart(3, "0");
+  return {
+    alias: `statue-${frameNumber}`,
+    src: `/assets/scene/statue/frame_${frameNumber}.webp`,
+  };
+});
+
 const windTurbineAssets = Array.from({ length: 36 }, (_, index) => {
   const frameNumber = index.toString().padStart(3, "0");
 
@@ -164,6 +172,7 @@ export const sceneAssetsManifest: AssetsManifest = {
         { alias: "webflowDirection", src: "/assets/scene/webflow/webflow_direction.webp" },
         { alias: "ufo", src: "/assets/scene/ufo/frame_010.webp" },
         { alias: "windTurbine", src: "/assets/scene/wind-turbine/frame_000.webp" },
+        { alias: "statue", src: "/assets/scene/statue/frame_000.webp" },
         ...characterIdleAssets,
         ...characterCloseLaptopAssets,
         ...catIdleAssets,
@@ -174,6 +183,7 @@ export const sceneAssetsManifest: AssetsManifest = {
         ...sceneTwoCharacterTalkAssets,
         ...ufoAssets,
         ...windTurbineAssets,
+        ...statueAssets,
       ],
     },
   ],

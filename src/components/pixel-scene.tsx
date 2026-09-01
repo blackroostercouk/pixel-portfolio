@@ -284,24 +284,53 @@ export function PixelScene() {
         // Check dynamic inventory items (collected layout sprites)
         const dynamicItem = gameRef.current.state.dynamicInventoryItems?.find((d) => d.id === selectedItemId);
         if (dynamicItem) {
-          // Modal-collected items have id "modal-collect-{spriteId}" — resolve source sprite
-          const sourceSpriteId = selectedItemId.startsWith("modal-collect-")
-            ? selectedItemId.slice("modal-collect-".length)
-            : selectedItemId;
-          const sourceSnapshot =
-            layout.latestLayoutSpritesRef.current.find((s) => s.id === sourceSpriteId) ??
-            controllerRef.current?.getLayoutSpriteSnapshotById(sourceSpriteId);
-          const targetObjectId = sourceSnapshot?.interaction?.collectTargetObjectId;
+          // Reward items carry their own target info; sprite-based items resolve via source sprite
+          const resolveTargetObjectId = (): string | undefined => {
+            if (dynamicItem.targetObjectId) return dynamicItem.targetObjectId;
+            const sourceSpriteId = selectedItemId.startsWith("modal-collect-")
+              ? selectedItemId.slice("modal-collect-".length)
+              : selectedItemId;
+            const snap =
+              layout.latestLayoutSpritesRef.current.find((s) => s.id === sourceSpriteId) ??
+              controllerRef.current?.getLayoutSpriteSnapshotById(sourceSpriteId);
+            return snap?.interaction?.collectTargetObjectId;
+          };
+
+          const getSourceInteraction = () => {
+            const sourceSpriteId = selectedItemId.startsWith("modal-collect-")
+              ? selectedItemId.slice("modal-collect-".length)
+              : selectedItemId;
+            const snap =
+              layout.latestLayoutSpritesRef.current.find((s) => s.id === sourceSpriteId) ??
+              controllerRef.current?.getLayoutSpriteSnapshotById(sourceSpriteId);
+            return snap?.interaction;
+          };
+
+          const targetObjectId = resolveTargetObjectId();
           if (targetObjectId && targetObjectId === objectId) {
-            const action = sourceSnapshot?.interaction?.collectTargetAction ?? "openModal";
+            const action =
+              dynamicItem.targetAction ??
+              getSourceInteraction()?.collectTargetAction ??
+              "openModal";
             if (action === "giveCollectible") {
-              const src = sourceSnapshot?.interaction?.collectTargetCollectibleSrc;
-              const label = sourceSnapshot?.interaction?.collectTargetCollectibleLabel ?? "Item";
+              const src =
+                dynamicItem.targetCollectibleSrc ??
+                getSourceInteraction()?.collectTargetCollectibleSrc;
+              const label =
+                dynamicItem.targetCollectibleLabel ??
+                getSourceInteraction()?.collectTargetCollectibleLabel ??
+                "Item";
               if (src) {
+                const rewardInteraction = getSourceInteraction();
                 gameRef.current.addDynamicInventoryItem({
                   id: `reward-${selectedItemId}-on-${objectId}`,
                   label,
                   iconSrc: src,
+                  targetObjectId: rewardInteraction?.rewardTargetObjectId,
+                  targetAction: rewardInteraction?.rewardTargetAction,
+                  targetCollectibleSrc: rewardInteraction?.rewardTargetCollectibleSrc,
+                  targetCollectibleLabel: rewardInteraction?.rewardTargetCollectibleLabel,
+                  consumeOnUse: rewardInteraction?.rewardConsumeOnUse,
                 });
                 if (acquiredItemTimerRef.current) clearTimeout(acquiredItemTimerRef.current);
                 setAcquiredItemRef.current({ label, iconSrc: src });
@@ -310,7 +339,10 @@ export function PixelScene() {
                   acquiredItemTimerRef.current = null;
                 }, 3000);
               }
-              if (sourceSnapshot?.interaction?.collectConsumeOnUse) {
+              const consumeOnUse =
+                dynamicItem.consumeOnUse ??
+                getSourceInteraction()?.collectConsumeOnUse;
+              if (consumeOnUse) {
                 gameRef.current.removeDynamicInventoryItem(selectedItemId);
               }
               return ""; // handled silently — no bubble, no normal click flow
