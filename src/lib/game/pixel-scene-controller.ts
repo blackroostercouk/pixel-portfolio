@@ -2013,7 +2013,10 @@ export class PixelSceneController {
       resolvedInteraction.infoDescription !== undefined ||
       resolvedInteraction.infoImageSrc !== undefined ||
       resolvedInteraction.infoModal !== undefined ||
-      resolvedInteraction.drawer !== undefined
+      resolvedInteraction.drawer !== undefined ||
+      resolvedInteraction.givesCollectibleItemId !== undefined ||
+      resolvedInteraction.acceptedCollectibleItemId !== undefined ||
+      resolvedInteraction.hasGame
         ? resolvedInteraction
         : undefined;
 
@@ -2090,6 +2093,14 @@ export class PixelSceneController {
       infoImageSrc: layoutConfig?.infoImageSrc,
       infoModal: layoutConfig?.infoModal,
       drawer: layoutConfig?.drawer,
+      givesCollectibleItemId: layoutConfig?.givesCollectibleItemId,
+      acceptedCollectibleItemId: layoutConfig?.acceptedCollectibleItemId,
+      onAcceptAction: layoutConfig?.onAcceptAction,
+      onAcceptGivesItemId: layoutConfig?.onAcceptGivesItemId,
+      hasGame: layoutConfig?.hasGame,
+      gameId: layoutConfig?.gameId,
+      onGameWinAction: layoutConfig?.onGameWinAction,
+      onGameWinItemId: layoutConfig?.onGameWinItemId,
     };
   }
 

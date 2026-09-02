@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ChangeEvent } from "react";
-import type { SceneSpriteInteractionConfig, LayoutSpriteSnapshot } from "@/lib/game/types";
+import type { SceneSpriteInteractionConfig, LayoutSpriteSnapshot, CollectibleItemDefinition } from "@/lib/game/types";
 import type { RefObject } from "react";
 import type { PixelSceneController } from "@/lib/game/pixel-scene-controller";
 
@@ -15,6 +15,7 @@ type Props = {
   allLayoutSprites: LayoutSpriteSnapshot[];
   layoutInfoImageOptions: string[];
   isUploadingCollectIcon: boolean;
+  collectibleItems: CollectibleItemDefinition[];
   controllerRef: RefObject<PixelSceneController | null>;
   onClose: () => void;
   onCollectIconUpload: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -27,6 +28,7 @@ export function CollectEditor({
   allLayoutSprites,
   layoutInfoImageOptions,
   isUploadingCollectIcon,
+  collectibleItems,
   controllerRef,
   onClose,
   onCollectIconUpload,
@@ -184,6 +186,26 @@ export function CollectEditor({
 
                   {(interaction?.collectTargetAction ?? "openModal") === "giveCollectible" ? (
                     <>
+                      {collectibleItems.length > 0 ? (
+                        <label className="layout-panel__field">
+                          <span className="layout-panel__label">Reward from Registry</span>
+                          <select
+                            className="layout-panel__input"
+                            value={interaction?.rewardCollectibleItemId ?? NONE_VALUE}
+                            onChange={(e) =>
+                              controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                                rewardCollectibleItemId: e.target.value === NONE_VALUE ? undefined : e.target.value,
+                              })
+                            }
+                          >
+                            <option value={NONE_VALUE}>Manual (below)</option>
+                            {collectibleItems.map((item) => (
+                              <option key={item.id} value={item.id}>{item.label}</option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+
                       <label className="layout-panel__field">
                         <span className="layout-panel__label">Reward Image</span>
                         <select

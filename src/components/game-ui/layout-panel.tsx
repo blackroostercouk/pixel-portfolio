@@ -131,6 +131,7 @@ import type {
   SceneThreeSmokeControls,
 } from "@/lib/game/types";
 import type { BuilderSceneDefinition, LayoutSaveState } from "@/lib/game/hooks/use-scene-layout-editor";
+import type { CollectibleItemDefinition } from "@/lib/game/types";
 import type { BuilderAssetType, BuilderAnimatedPreset } from "@/lib/game/builder-constants";
 
 // ─── Section accordion ────────────────────────────────────────────────────────
@@ -243,10 +244,13 @@ type LayoutPanelProps = {
   onAddItemToScene: () => void;
   onAddLight: () => void;
 
+  collectibleItems: CollectibleItemDefinition[];
+
   // Editors
   onOpenInfoEditor: () => void;
   onOpenDrawerEditor: () => void;
   onOpenCollectEditor: () => void;
+  onOpenItemsRegistry: () => void;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -312,9 +316,11 @@ export function LayoutPanel({
   onBuilderAssetUpload,
   onAddItemToScene,
   onAddLight,
+  collectibleItems,
   onOpenInfoEditor,
   onOpenDrawerEditor,
   onOpenCollectEditor,
+  onOpenItemsRegistry,
 }: LayoutPanelProps) {
   const isBuilderScene = currentSceneId === "scene-builder";
 
@@ -500,6 +506,9 @@ export function LayoutPanel({
             </button>
             <button type="button" className="layout-panel__action" onClick={onCreateEmptyBuilderScene}>
               New Empty
+            </button>
+            <button type="button" className="layout-panel__action" onClick={onOpenItemsRegistry}>
+              Items Registry
             </button>
           </div>
         </LayoutPanelSection>
@@ -734,11 +743,161 @@ export function LayoutPanel({
                   ) : null}
 
                   {selectedLayoutSpriteInteraction?.clickable && selectedLayoutSpriteInteraction?.collectible ? (
-                    <div className="layout-panel__actions">
-                      <button type="button" className="layout-panel__action" onClick={onOpenCollectEditor}>
-                        Edit Collect Item
-                      </button>
-                    </div>
+                    <>
+                      <label className="layout-panel__field">
+                        <span className="layout-panel__label">Gives Item</span>
+                        <select
+                          className="layout-panel__input"
+                          value={selectedLayoutSpriteInteraction?.givesCollectibleItemId ?? "__none__"}
+                          onChange={(e) =>
+                            controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                              givesCollectibleItemId: e.target.value === "__none__" ? undefined : e.target.value,
+                            })
+                          }
+                        >
+                          <option value="__none__">Select item from registry…</option>
+                          {collectibleItems.map((item) => (
+                            <option key={item.id} value={item.id}>{item.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <div className="layout-panel__actions">
+                        <button type="button" className="layout-panel__action" onClick={onOpenCollectEditor}>
+                          Edit Collect Item (legacy)
+                        </button>
+                      </div>
+                    </>
+                  ) : null}
+
+                  {selectedLayoutSpriteInteraction?.clickable ? (
+                    <>
+                      <hr style={{ border: "none", borderTop: "1px solid var(--color-border,#333)", margin: "8px 0" }} />
+                      <label className="layout-panel__toggle">
+                        <input
+                          type="checkbox"
+                          checked={selectedLayoutSpriteInteraction?.hasGame ?? false}
+                          onChange={(e) =>
+                            controllerRef.current?.updateSelectedLayoutSpriteInteraction({ hasGame: e.target.checked || undefined })
+                          }
+                        />
+                        <span>Has Game</span>
+                      </label>
+
+                      {selectedLayoutSpriteInteraction?.hasGame ? (
+                        <>
+                          <label className="layout-panel__field">
+                            <span className="layout-panel__label">Game</span>
+                            <select
+                              className="layout-panel__input"
+                              value={selectedLayoutSpriteInteraction?.gameId ?? "sliding-puzzle"}
+                              onChange={(e) =>
+                                controllerRef.current?.updateSelectedLayoutSpriteInteraction({ gameId: e.target.value })
+                              }
+                            >
+                              <option value="sliding-puzzle">Sliding Puzzle</option>
+                            </select>
+                          </label>
+                          <label className="layout-panel__field">
+                            <span className="layout-panel__label">On Win</span>
+                            <select
+                              className="layout-panel__input"
+                              value={selectedLayoutSpriteInteraction?.onGameWinAction ?? "giveItem"}
+                              onChange={(e) =>
+                                controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                                  onGameWinAction: e.target.value as "giveItem" | "openModal",
+                                })
+                              }
+                            >
+                              <option value="giveItem">Give Item</option>
+                              <option value="openModal">Open Modal</option>
+                            </select>
+                          </label>
+                          {(selectedLayoutSpriteInteraction?.onGameWinAction ?? "giveItem") === "giveItem" && collectibleItems.length > 0 ? (
+                            <label className="layout-panel__field">
+                              <span className="layout-panel__label">Give Item</span>
+                              <select
+                                className="layout-panel__input"
+                                value={selectedLayoutSpriteInteraction?.onGameWinItemId ?? "__none__"}
+                                onChange={(e) =>
+                                  controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                                    onGameWinItemId: e.target.value === "__none__" ? undefined : e.target.value,
+                                  })
+                                }
+                              >
+                                <option value="__none__">Select item…</option>
+                                {collectibleItems.map((item) => (
+                                  <option key={item.id} value={item.id}>{item.label}</option>
+                                ))}
+                              </select>
+                            </label>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </>
+                  ) : null}
+
+                  {selectedLayoutSpriteInteraction?.clickable && !selectedLayoutSpriteInteraction?.collectible && collectibleItems.length > 0 ? (
+                    <>
+                      <hr style={{ border: "none", borderTop: "1px solid var(--color-border,#333)", margin: "8px 0" }} />
+                      <span className="layout-panel__label">Item Interaction</span>
+                      <label className="layout-panel__field">
+                        <span className="layout-panel__label">Accepted Item</span>
+                        <select
+                          className="layout-panel__input"
+                          value={selectedLayoutSpriteInteraction?.acceptedCollectibleItemId ?? "__none__"}
+                          onChange={(e) =>
+                            controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                              acceptedCollectibleItemId: e.target.value === "__none__" ? undefined : e.target.value,
+                            })
+                          }
+                        >
+                          <option value="__none__">None</option>
+                          {collectibleItems.map((item) => (
+                            <option key={item.id} value={item.id}>{item.label}</option>
+                          ))}
+                        </select>
+                      </label>
+
+                      {selectedLayoutSpriteInteraction?.acceptedCollectibleItemId ? (
+                        <>
+                          <label className="layout-panel__field">
+                            <span className="layout-panel__label">Action</span>
+                            <select
+                              className="layout-panel__input"
+                              value={selectedLayoutSpriteInteraction?.onAcceptAction ?? "openModal"}
+                              onChange={(e) =>
+                                controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                                  onAcceptAction: e.target.value as "openModal" | "giveCollectible",
+                                })
+                              }
+                            >
+                              <option value="openModal">Open modal</option>
+                              <option value="giveCollectible">Give new item</option>
+                            </select>
+                          </label>
+
+                          {(selectedLayoutSpriteInteraction?.onAcceptAction ?? "openModal") === "giveCollectible" ? (
+                            <label className="layout-panel__field">
+                              <span className="layout-panel__label">Give Item</span>
+                              <select
+                                className="layout-panel__input"
+                                value={selectedLayoutSpriteInteraction?.onAcceptGivesItemId ?? "__none__"}
+                                onChange={(e) =>
+                                  controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                                    onAcceptGivesItemId: e.target.value === "__none__" ? undefined : e.target.value,
+                                  })
+                                }
+                              >
+                                <option value="__none__">Select item…</option>
+                                {collectibleItems.map((item) => (
+                                  <option key={item.id} value={item.id}>{item.label}</option>
+                                ))}
+                              </select>
+                            </label>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </>
                   ) : null}
 
                 </LayoutPanelSection>

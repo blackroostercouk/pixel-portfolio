@@ -162,11 +162,24 @@ export type SceneSpriteParticleConfig = {
   blendMode?: "normal" | "screen" | "add" | "lighten";
 };
 
+export type CollectibleItemDefinition = {
+  id: string;
+  label: string;
+  iconSrc: string;
+  targetObjectId?: string;
+  targetAction?: "openModal" | "giveCollectible";
+  targetCollectibleItemId?: string;
+  targetCollectibleSrc?: string;
+  targetCollectibleLabel?: string;
+  consumeOnUse?: boolean;
+};
+
 export type SceneSpriteInteractionConfig = {
   clickable?: boolean;
   hasInfo?: boolean;
   hasDrawer?: boolean;
   collectible?: boolean;
+  collectibleItemId?: string;
   collectLabel?: string;
   collectIconSrc?: string;
   collectTargetObjectId?: string;
@@ -174,11 +187,22 @@ export type SceneSpriteInteractionConfig = {
   collectTargetCollectibleSrc?: string;
   collectTargetCollectibleLabel?: string;
   collectConsumeOnUse?: boolean;
+  rewardCollectibleItemId?: string;
   rewardTargetObjectId?: string;
   rewardTargetAction?: "openModal" | "giveCollectible";
   rewardTargetCollectibleSrc?: string;
   rewardTargetCollectibleLabel?: string;
   rewardConsumeOnUse?: boolean;
+  // Simplified item system:
+  givesCollectibleItemId?: string;       // collectible sprite → which registry item it gives
+  acceptedCollectibleItemId?: string;    // target sprite → which registry item unlocks it
+  onAcceptAction?: "openModal" | "giveCollectible";
+  onAcceptGivesItemId?: string;          // if giveCollectible, which registry item to give
+  // Mini-game interaction:
+  hasGame?: boolean;
+  gameId?: string;                       // which game to open ("sliding-puzzle")
+  onGameWinAction?: "giveItem" | "openModal";
+  onGameWinItemId?: string;              // registry item to give on win
   clickAnimateFrames?: string[];
   clickAnimateFrameMs?: number;
   bubbleMessage?: string;

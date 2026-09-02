@@ -17,6 +17,7 @@ export type DynamicInventoryItem = {
   id: string;
   label: string;
   iconSrc: string;
+  registryItemId?: string;
   targetObjectId?: string;
   targetAction?: "openModal" | "giveCollectible";
   targetCollectibleSrc?: string;

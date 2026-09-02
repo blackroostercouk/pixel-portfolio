@@ -18,6 +18,9 @@ import { LayoutInfoModal } from "@/components/game-ui/layout-info-modal";
 import { InfoEditor } from "@/components/game-ui/info-editor";
 import { DrawerEditor } from "@/components/game-ui/drawer-editor";
 import { CollectEditor } from "@/components/game-ui/collect-editor";
+import { CollectibleItemsModal } from "@/components/game-ui/collectible-items-modal";
+import { GameModal } from "@/components/game-ui/game-modal";
+import type { GameId } from "@/components/game-ui/game-modal";
 import { SceneLoadingScreen } from "@/components/game-ui/scene-loading-screen";
 import { useAuth } from "@/lib/auth/use-auth";
 import { ItemInfoModal } from "@/components/game-ui/item-info-modal";
@@ -60,11 +63,16 @@ export function PixelScene() {
   const [isInfoEditorOpen, setIsInfoEditorOpen] = useState(false);
   const [isDrawerEditorOpen, setIsDrawerEditorOpen] = useState(false);
   const [isCollectEditorOpen, setIsCollectEditorOpen] = useState(false);
+  const [isItemsRegistryOpen, setIsItemsRegistryOpen] = useState(false);
+  const [activeGame, setActiveGame] = useState<{ gameId: GameId; spriteId: string } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [acquiredItem, setAcquiredItem] = useState<{ label: string; iconSrc: string } | null>(null);
   const acquiredItemTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setAcquiredItemRef = useRef(setAcquiredItem);
   setAcquiredItemRef.current = setAcquiredItem;
+  const setActiveGameRef = useRef(setActiveGame);
+  setActiveGameRef.current = setActiveGame;
+  const completedGameSpritesRef = useRef<Set<string>>(new Set());
   const [isPortrait, setIsPortrait] = useState(false);
   const [selectedInfoEditorStage, setSelectedInfoEditorStage] =
     useState<SceneInfoModalStageId>("normal");
@@ -243,9 +251,20 @@ export function PixelScene() {
           const snapshot =
             layout.latestLayoutSpritesRef.current.find((s) => s.id === objectId) ??
             controllerRef.current?.getLayoutSpriteSnapshotById(objectId);
-          const label = snapshot?.interaction?.collectLabel || snapshot?.interaction?.infoTitle || objectId;
-          const iconSrc = snapshot?.interaction?.collectIconSrc || snapshot?.src || "";
-          game.addDynamicInventoryItem({ id: objectId, label, iconSrc });
+          // New simple path: givesCollectibleItemId → registry item
+          const givesItemId = snapshot?.interaction?.givesCollectibleItemId;
+          const registryGiveItem = givesItemId
+            ? layout.collectibleItemsRef.current.find((r) => r.id === givesItemId)
+            : null;
+          const label = registryGiveItem?.label ?? snapshot?.interaction?.collectLabel ?? snapshot?.interaction?.infoTitle ?? objectId;
+          const iconSrc = registryGiveItem?.iconSrc ?? snapshot?.interaction?.collectIconSrc ?? snapshot?.src ?? "";
+          game.addDynamicInventoryItem({
+            id: objectId,
+            label,
+            iconSrc,
+            registryItemId: registryGiveItem?.id,
+            consumeOnUse: registryGiveItem?.consumeOnUse,
+          });
           controllerRef.current?.consumeLayoutSprite(objectId);
           return;
         }
@@ -278,15 +297,77 @@ export function PixelScene() {
       },
       onLayoutStateChange: layout.onLayoutStateChange,
       getInteractionOverrideMessage: (objectId) => {
+        // hasGame: open game modal regardless of inventory state
+        {
+          const snap =
+            layout.latestLayoutSpritesRef.current.find((s) => s.id === objectId) ??
+            controllerRef.current?.getLayoutSpriteSnapshotById(objectId);
+          if (snap?.interaction?.hasGame && !completedGameSpritesRef.current.has(objectId)) {
+            const gameId = (snap.interaction.gameId ?? "sliding-puzzle") as GameId;
+            setActiveGameRef.current({ gameId, spriteId: objectId });
+            return "";
+          }
+        }
+
         const selectedItemId = selectedInventoryItemIdRef.current;
         if (!selectedItemId) return null;
 
         // Check dynamic inventory items (collected layout sprites)
         const dynamicItem = gameRef.current.state.dynamicInventoryItems?.find((d) => d.id === selectedItemId);
         if (dynamicItem) {
+          // ── NEW SIMPLE PATH: target sprite declares which item it accepts ──
+          const targetSnap =
+            layout.latestLayoutSpritesRef.current.find((s) => s.id === objectId) ??
+            controllerRef.current?.getLayoutSpriteSnapshotById(objectId);
+          const accepted = targetSnap?.interaction?.acceptedCollectibleItemId;
+          // registryItemId may be unset if item was collected before givesCollectibleItemId was configured;
+          // fall back to matching by label so legacy-collected items still work.
+          const effectiveRegistryId =
+            dynamicItem.registryItemId ??
+            layout.collectibleItemsRef.current.find((r) => r.label === dynamicItem.label)?.id;
+          if (accepted && accepted === effectiveRegistryId) {
+            const onAcceptAction = targetSnap!.interaction!.onAcceptAction ?? "openModal";
+            const registryItem = layout.collectibleItemsRef.current.find((r) => r.id === accepted);
+            const consumeOnUse = registryItem?.consumeOnUse;
+            if (onAcceptAction === "giveCollectible") {
+              const giveItemId = targetSnap!.interaction!.onAcceptGivesItemId;
+              const giveItem = giveItemId
+                ? layout.collectibleItemsRef.current.find((r) => r.id === giveItemId)
+                : null;
+              if (giveItem) {
+                gameRef.current.addDynamicInventoryItem({
+                  id: `reward-${selectedItemId}-on-${objectId}`,
+                  label: giveItem.label,
+                  iconSrc: giveItem.iconSrc,
+                  registryItemId: giveItem.id,
+                  consumeOnUse: giveItem.consumeOnUse,
+                });
+                if (acquiredItemTimerRef.current) clearTimeout(acquiredItemTimerRef.current);
+                setAcquiredItemRef.current({ label: giveItem.label, iconSrc: giveItem.iconSrc });
+                acquiredItemTimerRef.current = setTimeout(() => {
+                  setAcquiredItemRef.current(null);
+                  acquiredItemTimerRef.current = null;
+                }, 3000);
+              }
+              if (consumeOnUse) gameRef.current.removeDynamicInventoryItem(selectedItemId);
+              return "";
+            }
+            // openModal — let the normal click flow open the target's modal
+            if (consumeOnUse) gameRef.current.removeDynamicInventoryItem(selectedItemId);
+            return null;
+          }
+          // ── end new simple path ──
+
           // Reward items carry their own target info; sprite-based items resolve via source sprite
           const resolveTargetObjectId = (): string | undefined => {
+            // 1. Direct target on the dynamic item
             if (dynamicItem.targetObjectId) return dynamicItem.targetObjectId;
+            // 2. Registry lookup by registryItemId
+            if (dynamicItem.registryItemId) {
+              const reg = layout.collectibleItemsRef.current.find((r) => r.id === dynamicItem.registryItemId);
+              if (reg?.targetObjectId) return reg.targetObjectId;
+            }
+            // 3. Source sprite's collectTargetObjectId (legacy path)
             const sourceSpriteId = selectedItemId.startsWith("modal-collect-")
               ? selectedItemId.slice("modal-collect-".length)
               : selectedItemId;
@@ -308,29 +389,47 @@ export function PixelScene() {
 
           const targetObjectId = resolveTargetObjectId();
           if (targetObjectId && targetObjectId === objectId) {
+            // Resolve action from: dynamic item → registry → source sprite
+            const registryItem = dynamicItem.registryItemId
+              ? layout.collectibleItemsRef.current.find((r) => r.id === dynamicItem.registryItemId)
+              : null;
             const action =
               dynamicItem.targetAction ??
+              registryItem?.targetAction ??
               getSourceInteraction()?.collectTargetAction ??
               "openModal";
             if (action === "giveCollectible") {
+              // Reward item can come from registry chain or direct fields
+              const rewardRegistryId =
+                registryItem?.targetCollectibleItemId ??
+                getSourceInteraction()?.rewardCollectibleItemId;
+              const rewardRegistryItem = rewardRegistryId
+                ? layout.collectibleItemsRef.current.find((r) => r.id === rewardRegistryId)
+                : null;
+
               const src =
-                dynamicItem.targetCollectibleSrc ??
-                getSourceInteraction()?.collectTargetCollectibleSrc;
+                rewardRegistryItem?.iconSrc
+                  ?? registryItem?.targetCollectibleSrc
+                  ?? dynamicItem.targetCollectibleSrc
+                  ?? getSourceInteraction()?.collectTargetCollectibleSrc;
               const label =
-                dynamicItem.targetCollectibleLabel ??
-                getSourceInteraction()?.collectTargetCollectibleLabel ??
-                "Item";
+                rewardRegistryItem?.label
+                  ?? registryItem?.targetCollectibleLabel
+                  ?? dynamicItem.targetCollectibleLabel
+                  ?? getSourceInteraction()?.collectTargetCollectibleLabel
+                  ?? "Item";
               if (src) {
                 const rewardInteraction = getSourceInteraction();
                 gameRef.current.addDynamicInventoryItem({
                   id: `reward-${selectedItemId}-on-${objectId}`,
                   label,
                   iconSrc: src,
-                  targetObjectId: rewardInteraction?.rewardTargetObjectId,
-                  targetAction: rewardInteraction?.rewardTargetAction,
-                  targetCollectibleSrc: rewardInteraction?.rewardTargetCollectibleSrc,
-                  targetCollectibleLabel: rewardInteraction?.rewardTargetCollectibleLabel,
-                  consumeOnUse: rewardInteraction?.rewardConsumeOnUse,
+                  registryItemId: rewardRegistryId,
+                  targetObjectId: rewardRegistryItem?.targetObjectId ?? rewardInteraction?.rewardTargetObjectId,
+                  targetAction: rewardRegistryItem?.targetAction ?? rewardInteraction?.rewardTargetAction,
+                  targetCollectibleSrc: rewardRegistryItem?.targetCollectibleSrc ?? rewardInteraction?.rewardTargetCollectibleSrc,
+                  targetCollectibleLabel: rewardRegistryItem?.targetCollectibleLabel ?? rewardInteraction?.rewardTargetCollectibleLabel,
+                  consumeOnUse: rewardRegistryItem?.consumeOnUse ?? rewardInteraction?.rewardConsumeOnUse,
                 });
                 if (acquiredItemTimerRef.current) clearTimeout(acquiredItemTimerRef.current);
                 setAcquiredItemRef.current({ label, iconSrc: src });
@@ -758,9 +857,11 @@ export function PixelScene() {
             onBuilderAssetUpload={layout.handleBuilderAssetUpload}
             onAddItemToScene={() => void layout.addBuilderItemToScene()}
             onAddLight={() => void layout.addRuntimeLightToScene()}
+            collectibleItems={layout.collectibleItems}
             onOpenInfoEditor={() => setIsInfoEditorOpen(true)}
             onOpenDrawerEditor={() => setIsDrawerEditorOpen(true)}
             onOpenCollectEditor={() => setIsCollectEditorOpen(true)}
+            onOpenItemsRegistry={() => setIsItemsRegistryOpen(true)}
           />
         ) : null}
 
@@ -983,10 +1084,65 @@ export function PixelScene() {
         allLayoutSprites={layout.visibleLayoutSprites}
         layoutInfoImageOptions={layoutInfoImageOptions}
         isUploadingCollectIcon={isUploadingCollectIcon}
+        collectibleItems={layout.collectibleItems}
         controllerRef={controllerRef}
         onClose={() => setIsCollectEditorOpen(false)}
         onCollectIconUpload={handleCollectIconUpload}
       />
+
+      <CollectibleItemsModal
+        isOpen={isItemsRegistryOpen}
+        items={layout.collectibleItems}
+        builderScenes={layout.builderScenes}
+        layoutInfoImageOptions={layoutInfoImageOptions}
+        onSave={layout.saveCollectibleItems}
+        onClose={() => setIsItemsRegistryOpen(false)}
+      />
+
+      {activeGame ? (
+        <GameModal
+          isOpen={true}
+          gameId={activeGame.gameId}
+          onClose={() => setActiveGame(null)}
+          onWin={() => {
+            completedGameSpritesRef.current.add(activeGame.spriteId);
+            const snap =
+              layout.latestLayoutSpritesRef.current.find((s) => s.id === activeGame.spriteId) ??
+              controllerRef.current?.getLayoutSpriteSnapshotById(activeGame.spriteId);
+            const interaction = snap?.interaction;
+            const winAction = interaction?.onGameWinAction ?? "giveItem";
+            if (winAction === "giveItem") {
+              const itemId = interaction?.onGameWinItemId;
+              const registryItem = itemId
+                ? layout.collectibleItemsRef.current.find((r) => r.id === itemId)
+                : null;
+              if (registryItem) {
+                gameRef.current.addDynamicInventoryItem({
+                  id: `game-reward-${activeGame.spriteId}-${Date.now()}`,
+                  label: registryItem.label,
+                  iconSrc: registryItem.iconSrc,
+                  registryItemId: registryItem.id,
+                  consumeOnUse: registryItem.consumeOnUse,
+                });
+                if (acquiredItemTimerRef.current) clearTimeout(acquiredItemTimerRef.current);
+                setAcquiredItemRef.current({ label: registryItem.label, iconSrc: registryItem.iconSrc });
+                acquiredItemTimerRef.current = setTimeout(() => {
+                  setAcquiredItemRef.current(null);
+                  acquiredItemTimerRef.current = null;
+                }, 3000);
+              }
+            } else if (winAction === "openModal" && interaction) {
+              const preferredStage =
+                infoModal.resolvedLayoutInfoModalStagesRef.current[activeGame.spriteId] ?? "normal";
+              infoModal.setActiveLayoutInfoModal({ spriteId: activeGame.spriteId, interaction });
+              infoModal.setActiveLayoutInfoModalStage(preferredStage);
+              infoModal.setActiveLayoutInfoModalFlipped(false);
+              infoModal.setActiveLayoutInfoInputValue("");
+            }
+            setActiveGame(null);
+          }}
+        />
+      ) : null}
 
       {layout.layoutSaveLabel ? (
         <div

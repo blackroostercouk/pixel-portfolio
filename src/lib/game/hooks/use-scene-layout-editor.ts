@@ -8,7 +8,7 @@ import {
   BUILDER_ANIMATED_PRESET_OPTIONS as _unused,
 } from "@/lib/game/builder-constants";
 import type { PixelSceneController } from "@/lib/game/pixel-scene-controller";
-import type { SceneThreeSmokeControls, LayoutSpriteSnapshot, SceneSpriteRainSplashSegmentConfig } from "@/lib/game/types";
+import type { SceneThreeSmokeControls, LayoutSpriteSnapshot, SceneSpriteRainSplashSegmentConfig, CollectibleItemDefinition } from "@/lib/game/types";
 import type { SceneId } from "@/lib/game/core/game-state";
 import { createDefaultRainSplashConfig } from "@/lib/game/layout-utils";
 
@@ -67,6 +67,10 @@ export function useSceneLayoutEditor(
   const [activeBuilderSceneId, setActiveBuilderSceneId] = useState("builder-scene-1");
   const [builderSceneRenderVersion, setBuilderSceneRenderVersion] = useState(0);
   const [newBuilderSceneName, setNewBuilderSceneName] = useState("");
+
+  // ─── Collectible Items Registry ───────────────────────────────────────
+  const [collectibleItems, setCollectibleItems] = useState<CollectibleItemDefinition[]>([]);
+  const collectibleItemsRef = useRef<CollectibleItemDefinition[]>([]);
 
   // ─── Builder assets ───────────────────────────────────────────────────
   const [builderAssetOptions, setBuilderAssetOptions] = useState<{
@@ -253,6 +257,25 @@ export function useSceneLayoutEditor(
     return () => { cancelled = true; };
   }, []);
 
+  // ─── Load collectible items registry ─────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/collectible-items");
+        if (!res.ok) return;
+        const data = (await res.json()) as { items?: CollectibleItemDefinition[] };
+        if (!cancelled) {
+          const items = data.items ?? [];
+          setCollectibleItems(items);
+          collectibleItemsRef.current = items;
+        }
+      } catch { /* ignore */ }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, []);
+
   // ─── Load builder asset options ───────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -328,6 +351,19 @@ export function useSceneLayoutEditor(
       body: JSON.stringify({ scenes }),
     });
     if (!res.ok) throw new Error("Failed to persist builder scenes.");
+  };
+
+  const saveCollectibleItems = async (items: CollectibleItemDefinition[]) => {
+    setCollectibleItems(items);
+    collectibleItemsRef.current = items;
+    try {
+      const res = await fetch("/api/collectible-items", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+      if (!res.ok) throw new Error("Failed to save collectible items.");
+    } catch { /* silent */ }
   };
 
   // ─── Scene override actions ───────────────────────────────────────────
@@ -732,6 +768,11 @@ export function useSceneLayoutEditor(
     handleBuilderAssetUpload,
     markLayoutSaveSuccess,
     markLayoutSaveError,
+
+    // Collectible Items Registry
+    collectibleItems,
+    collectibleItemsRef,
+    saveCollectibleItems,
   };
 }
 
