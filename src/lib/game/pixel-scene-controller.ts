@@ -47,6 +47,7 @@ import type {
   SceneSpriteRainSplashSegmentConfig,
   SceneSpriteVisualConfig,
   SceneThreeSmokeControls,
+  SceneSpriteRuntimeSmokeConfig,
   SceneSpriteConfig,
 } from "./types";
 import { createCharacterEntity } from "./entities/character-entity";
@@ -77,6 +78,10 @@ type SceneLayers = Record<SceneLayerName, Container>;
 type PixelSceneControllerOptions = {
   sceneId?: SceneId;
   runtimeSceneBackgroundSrc?: string | null;
+  runtimeSceneBackgroundLayers?: { src: string }[];
+  runtimeSceneBackgroundBrightness?: number;
+  runtimeSceneBackgroundContrast?: number;
+  runtimeSceneBackgroundPlaybackRate?: number;
   runtimeSceneSprites?: SceneSpriteConfig[];
   onLoadProgress?: (progress: number) => void;
   onCharacterClick?: () => void;
@@ -133,6 +138,7 @@ type LayoutEditableSpriteRuntime = {
   sprite: Sprite;
   config: SceneSpriteConfig;
   animator?: SpriteAnimator;
+  baseClip?: AnimationClip; // original full clip, used when animStopFrame changes
   colorFilter?: ColorMatrixFilter;
   displacementFilter?: DisplacementFilter;
   displacementSprite?: Sprite;
@@ -248,6 +254,131 @@ function createCharacterIdleClip(): AnimationClip {
 
   return {
     id: "character-idle",
+    frames,
+    loop: true,
+  };
+}
+
+function createVinylTurningClip(): AnimationClip {
+  const frames = Array.from({ length: 36 }, (_, index) => {
+    const frameNumber = index.toString().padStart(3, "0");
+    return `vinyl-turning-${frameNumber}`;
+  }).map((assetId) => ({
+    texture: Assets.get(assetId) as Texture,
+    durationMs: 60,
+  }));
+
+  return {
+    id: "vinyl-turning-idle",
+    frames,
+    loop: true,
+  };
+}
+
+function createWebflowTypingClip(): AnimationClip {
+  const frames = Array.from({ length: 36 }, (_, index) => {
+    const frameNumber = index.toString().padStart(3, "0");
+    return `webflow-typing-${frameNumber}`;
+  }).map((assetId) => ({
+    texture: Assets.get(assetId) as Texture,
+    durationMs: 80,
+  }));
+  return { id: "webflow-typing-idle", frames, loop: true };
+}
+
+function createTypingGentlyClip(): AnimationClip {
+  const frames = Array.from({ length: 36 }, (_, index) => {
+    const frameNumber = index.toString().padStart(3, "0");
+    return `typing-gently-${frameNumber}`;
+  }).map((assetId) => ({
+    texture: Assets.get(assetId) as Texture,
+    durationMs: 80,
+  }));
+  return { id: "typing-gently-idle", frames, loop: true };
+}
+
+function createTheHandsEmergeFroClip(): AnimationClip {
+  const frames = Array.from({ length: 36 }, (_, index) => {
+    const frameNumber = index.toString().padStart(3, "0");
+    return `the-hands-emerge-fro-${frameNumber}`;
+  }).map((assetId) => ({
+    texture: Assets.get(assetId) as Texture,
+    durationMs: 80,
+  }));
+  return { id: "the-hands-emerge-fro-idle", frames, loop: true };
+}
+
+function createDontChangeTheImaClip(): AnimationClip {
+  const frames = Array.from({ length: 36 }, (_, index) => {
+    const frameNumber = index.toString().padStart(3, "0");
+    return `dont-change-the-ima-${frameNumber}`;
+  }).map((assetId) => ({
+    texture: Assets.get(assetId) as Texture,
+    durationMs: 200, // slower than normal (80ms)
+  }));
+  return { id: "dont-change-the-ima-idle", frames, loop: true };
+}
+
+function createAnimateOnlySubtleClip(): AnimationClip {
+  const frames = Array.from({ length: 36 }, (_, index) => {
+    const frameNumber = index.toString().padStart(3, "0");
+    return `animate-only-subtle-${frameNumber}`;
+  }).map((assetId) => ({
+    texture: Assets.get(assetId) as Texture,
+    durationMs: 80,
+  }));
+  return { id: "animate-only-subtle-idle", frames, loop: true };
+}
+
+function createCharacterSlightlyTClip(): AnimationClip {
+  const frames = Array.from({ length: 36 }, (_, index) => {
+    const frameNumber = index.toString().padStart(3, "0");
+    return `character-slightly-t-${frameNumber}`;
+  }).map((assetId) => ({
+    texture: Assets.get(assetId) as Texture,
+    durationMs: 80,
+  }));
+  return { id: "character-slightly-t-idle", frames, loop: true };
+}
+
+function createSmallBreathAndBreClip(): AnimationClip {
+  const frames = Array.from({ length: 36 }, (_, index) => {
+    const frameNumber = index.toString().padStart(3, "0");
+    return `small-breath-and-bre-${frameNumber}`;
+  }).map((assetId) => ({
+    texture: Assets.get(assetId) as Texture,
+    durationMs: 80,
+  }));
+  return { id: "small-breath-and-bre-idle", frames, loop: true };
+}
+
+function createTwoCharacterFightClip(): AnimationClip {
+  const frames = Array.from({ length: 36 }, (_, index) => {
+    const frameNumber = index.toString().padStart(3, "0");
+    return `two-character-fight-${frameNumber}`;
+  }).map((assetId) => ({
+    texture: Assets.get(assetId) as Texture,
+    durationMs: 80,
+  }));
+
+  return {
+    id: "two-character-fight-idle",
+    frames,
+    loop: true,
+  };
+}
+
+function createWorkingDeskClip(): AnimationClip {
+  const frames = Array.from({ length: 36 }, (_, index) => {
+    const frameNumber = index.toString().padStart(3, "0");
+    return `working-desk-${frameNumber}`;
+  }).map((assetId) => ({
+    texture: Assets.get(assetId) as Texture,
+    durationMs: 80,
+  }));
+
+  return {
+    id: "working-desk-idle",
     frames,
     loop: true,
   };
@@ -381,6 +512,7 @@ export class PixelSceneController {
   private layoutEditableSpritesById = new Map<string, LayoutEditableSpriteRuntime>();
   private collectedLayoutSpriteIds = new Set<string>();
   private customLightsById = new Map<string, CustomLightRuntime>();
+  private runtimeSmokeSystemsById = new Map<string, SceneThreeChimneySmokeSystem>();
   private actorEntities: UpdatableActor[] = [];
   private environmentAnimators: UpdatableActor[] = [];
   private effectSystems: UpdatableActor[] = [];
@@ -446,6 +578,8 @@ export class PixelSceneController {
   );
   private assetsLoaded = false;
   private isLayoutModeEnabled = false;
+  private _bgVideoElements: HTMLVideoElement[] = [];
+  get isInLayoutMode() { return this.isLayoutModeEnabled; }
   private selectedLayoutSpriteId: string | null = null;
   private activeLayoutDrag: ActiveLayoutDrag | null = null;
   private readonly sceneId: SceneId = this.options.sceneId ?? "scene-builder";
@@ -456,6 +590,41 @@ export class PixelSceneController {
     } catch {
       return false;
     }
+  }
+
+  private static isVideoSrc(src: string) {
+    return /\.(mp4|webm)(\?|$)/i.test(src);
+  }
+
+  private createVideoBackgroundSprite(src: string): Sprite | null {
+    const texture = Assets.get<Texture>(src);
+    if (!texture) return null;
+
+    // Ensure video element is playing with correct settings
+    const rawSource = texture.source as { resource?: unknown };
+    const video = rawSource?.resource instanceof HTMLVideoElement ? rawSource.resource : null;
+    if (video) {
+      video.loop = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.playbackRate = this.options.runtimeSceneBackgroundPlaybackRate ?? 1;
+      this._bgVideoElements.push(video);
+      void video.play().catch(() => { /* autoplay may require user gesture */ });
+    }
+
+    const sprite = new Sprite(texture);
+    sprite.label = backgroundSprite.id;
+    sprite.anchor.set(0.5, 0.5);
+    sprite.position.set(VIRTUAL_WIDTH * 0.5, VIRTUAL_HEIGHT * 0.5);
+
+    // texture.width/height are available after Assets.load resolves
+    const w = texture.width;
+    const h = texture.height;
+    if (w && h) {
+      sprite.scale.set(Math.max(VIRTUAL_WIDTH / w, VIRTUAL_HEIGHT / h));
+    }
+
+    return sprite;
   }
 
   async mount(host: HTMLElement) {
@@ -569,6 +738,10 @@ export class PixelSceneController {
     }
     this.sceneThreeChimneySmokeSystem?.destroy();
     this.sceneThreeChimneySmokeSystem = null;
+    for (const system of this.runtimeSmokeSystemsById.values()) {
+      system.destroy();
+    }
+    this.runtimeSmokeSystemsById.clear();
     this.shootingStarSystem?.destroy();
     this.shootingStarSystem = null;
     this.sceneWalkInCharacterRuntime = null;
@@ -621,6 +794,11 @@ export class PixelSceneController {
     this.world = null;
     this.assetsLoaded = false;
 
+    for (const vid of this._bgVideoElements) {
+      vid.pause();
+    }
+    this._bgVideoElements = [];
+
     if (this.app) {
       this.app.destroy(true, {
         children: true,
@@ -633,6 +811,10 @@ export class PixelSceneController {
 
   setRainEnabled(enabled: boolean) {
     this.rainSystem?.setEnabled(enabled);
+  }
+
+  setShootingStarsEnabled(enabled: boolean) {
+    this.shootingStarSystem?.setEnabled(enabled);
   }
 
   updateRainLayerConfig(layerIndex: number, patch: import("./effects/rain-config").RainLayerPatch) {
@@ -655,6 +837,11 @@ export class PixelSceneController {
     }
   }
 
+  showCharacterBubble(message: string) {
+    this.activeCharacterBubbleOverrideMessage = message;
+    this.showBubble("character");
+  }
+
   setLayoutMode(enabled: boolean) {
     this.isLayoutModeEnabled = enabled;
 
@@ -672,6 +859,17 @@ export class PixelSceneController {
     }
 
     this.selectedLayoutSpriteId = spriteId;
+    this.emitLayoutStateChange();
+  }
+
+  nudgeSelectedLayoutSprite(dx: number, dy: number) {
+    if (!this.isLayoutModeEnabled || !this.selectedLayoutSpriteId) return;
+    const entry = this.layoutEditableSpritesById.get(this.selectedLayoutSpriteId);
+    if (!entry) return;
+    entry.sprite.position.set(
+      Math.round(entry.sprite.position.x + dx),
+      Math.round(entry.sprite.position.y + dy),
+    );
     this.emitLayoutStateChange();
   }
 
@@ -787,6 +985,36 @@ export class PixelSceneController {
     this.emitLayoutStateChange();
   }
 
+  updateSelectedLayoutSpriteSmokeControls(next: Partial<SceneSpriteRuntimeSmokeConfig>) {
+    const selectedSprite = this.selectedLayoutSpriteId
+      ? this.layoutEditableSpritesById.get(this.selectedLayoutSpriteId)
+      : null;
+
+    if (!selectedSprite || selectedSprite.config.runtimeType !== "smoke") {
+      return;
+    }
+
+    selectedSprite.config.smokeControls = {
+      ...(selectedSprite.config.smokeControls ?? {}),
+      ...next,
+    };
+
+    const smokeSystem = this.runtimeSmokeSystemsById.get(selectedSprite.config.id);
+    if (smokeSystem) {
+      const sc = selectedSprite.config.smokeControls;
+      smokeSystem.setControls({
+        ...smokeSystem.getControls(),
+        scale: sc.scale ?? 1,
+        density: sc.density ?? 1.42,
+        drift: sc.drift ?? 0.74,
+        rise: sc.rise ?? 1,
+        speed: sc.speed ?? 1,
+      });
+    }
+
+    this.emitLayoutStateChange();
+  }
+
   updateSelectedLayoutSpriteParticles(
     nextParticles: Partial<SceneSpriteParticleConfig>,
   ) {
@@ -850,6 +1078,33 @@ export class PixelSceneController {
     entry.config.animStopFrame = frame;
     if (entry.sprite instanceof AnimatedSprite && !entry.sprite.playing) {
       entry.sprite.gotoAndStop(frame);
+    } else if (entry.config.animControlEnabled && entry.animator?.baseClip) {
+      const base = entry.animator.baseClip;
+      entry.animator.forcePlay({
+        ...base,
+        frames: base.frames.slice(0, frame + 1),
+        loop: frame > 0,
+      });
+    }
+    this.emitLayoutStateChange();
+  }
+
+  updateSelectedLayoutSpriteAnimControlEnabled(enabled: boolean) {
+    const entry = this.selectedLayoutSpriteId
+      ? this.layoutEditableSpritesById.get(this.selectedLayoutSpriteId) : null;
+    if (!entry) return;
+    entry.config.animControlEnabled = enabled;
+    if (entry.animator?.baseClip) {
+      const base = entry.animator.baseClip;
+      if (enabled && entry.config.animStopFrame !== undefined) {
+        entry.animator.forcePlay({
+          ...base,
+          frames: base.frames.slice(0, entry.config.animStopFrame + 1),
+          loop: entry.config.animStopFrame > 0,
+        });
+      } else {
+        entry.animator.forcePlay(base);
+      }
     }
     this.emitLayoutStateChange();
   }
@@ -882,6 +1137,14 @@ export class PixelSceneController {
 
   private clickAnimationTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private statueToggleState = new Map<string, 0 | 1>();
+
+  triggerSpriteClickAnimation(spriteId: string) {
+    const entry = this.layoutEditableSpritesById.get(spriteId);
+    if (!entry) return;
+    const frames = entry.config.interaction?.clickAnimateFrames;
+    if (!frames?.length) return;
+    this.playClickAnimation(spriteId, frames, entry.config.interaction?.clickAnimateFrameMs ?? 80);
+  }
 
   private playClickAnimation(spriteId: string, frames: string[], frameMs: number) {
     const entry = this.layoutEditableSpritesById.get(spriteId);
@@ -939,15 +1202,25 @@ export class PixelSceneController {
     const length = shadow.length ?? 0.3;
     const alpha = shadow.alpha ?? 0.35;
 
+    const flipY = shadow.flipY ?? false;
+    const offsetX = shadow.offsetX ?? 0;
+    const offsetY = shadow.offsetY ?? 0;
     s.texture = main.texture;
-    s.anchor.set(main.anchor.x, 0);
     const bottomY = main.position.y + Math.abs(main.height) * (1 - main.anchor.y);
-    s.position.set(main.position.x, bottomY);
     s.width = Math.abs(main.width);
     s.height = Math.abs(main.height) * length;
     s.skew.x = angle;
     s.alpha = alpha;
     s.zIndex = (main.zIndex ?? 0) - 0.5;
+    if (flipY) {
+      s.anchor.set(main.anchor.x, 1);
+      s.position.set(main.position.x + offsetX, bottomY + offsetY);
+      s.scale.y = -Math.abs(s.scale.y);
+    } else {
+      s.anchor.set(main.anchor.x, 0);
+      s.position.set(main.position.x + offsetX, bottomY + offsetY);
+      s.scale.y = Math.abs(s.scale.y);
+    }
   }
 
   setSelectedLayoutSpriteRainSplashSegments(
@@ -1139,6 +1412,15 @@ export class PixelSceneController {
     this.emitLayoutStateChange();
   }
 
+  setSelectedLayoutSpriteInitiallyHidden(hidden: boolean) {
+    const selectedSprite = this.selectedLayoutSpriteId
+      ? this.layoutEditableSpritesById.get(this.selectedLayoutSpriteId)
+      : null;
+    if (!selectedSprite) return;
+    selectedSprite.config.initiallyHidden = hidden || undefined;
+    this.emitLayoutStateChange();
+  }
+
   deleteSelectedLayoutSprite() {
     const selectedSprite = this.selectedLayoutSpriteId
       ? this.layoutEditableSpritesById.get(this.selectedLayoutSpriteId)
@@ -1246,15 +1528,33 @@ export class PixelSceneController {
       onProgress?.(1);
     }
 
-    if (this.options.runtimeSceneBackgroundSrc) {
-      await Assets.load(this.options.runtimeSceneBackgroundSrc).catch((error) => {
-        console.error("[PixelSceneController] Failed to load runtime background", {
-          sceneId: this.sceneId,
-          src: this.options.runtimeSceneBackgroundSrc,
-          error,
-        });
-      });
+    const bgSrcsToLoad: string[] = [];
+    const bgVideoSrcsToLoad: string[] = [];
+    if (this.options.runtimeSceneBackgroundLayers?.length) {
+      for (const l of this.options.runtimeSceneBackgroundLayers) {
+        (PixelSceneController.isVideoSrc(l.src) ? bgVideoSrcsToLoad : bgSrcsToLoad).push(l.src);
+      }
+    } else if (this.options.runtimeSceneBackgroundSrc) {
+      (PixelSceneController.isVideoSrc(this.options.runtimeSceneBackgroundSrc) ? bgVideoSrcsToLoad : bgSrcsToLoad).push(this.options.runtimeSceneBackgroundSrc);
     }
+    // Unload stale cached video textures before reloading — prevents dead texture on controller remount
+    await Promise.allSettled(
+      bgVideoSrcsToLoad.map((src) =>
+        Assets.get(src) ? Assets.unload(src).catch(() => {}) : Promise.resolve(),
+      ),
+    );
+    await Promise.allSettled([
+      ...bgSrcsToLoad.map((src) =>
+        Assets.load(src).catch((error) => {
+          console.error("[PixelSceneController] Failed to load runtime background", { sceneId: this.sceneId, src, error });
+        }),
+      ),
+      ...bgVideoSrcsToLoad.map((src) =>
+        Assets.load({ src, data: { autoPlay: true, loop: true, muted: true } }).catch((error) => {
+          console.error("[PixelSceneController] Failed to load video background", { sceneId: this.sceneId, src, error });
+        }),
+      ),
+    ]);
 
     const runtimeSpriteAssets = (this.options.runtimeSceneSprites ?? []).filter(
       (sprite): sprite is SceneSpriteConfig & { src: string } => Boolean(sprite.src),
@@ -1326,6 +1626,15 @@ export class PixelSceneController {
     layers.actorLayer.zIndex = 20;
     layers.effectsLayer.zIndex = 30;
     layers.backgroundLayer.sortableChildren = true;
+
+    const bgBrightness = this.options.runtimeSceneBackgroundBrightness;
+    const bgContrast = this.options.runtimeSceneBackgroundContrast;
+    if (bgBrightness !== undefined || bgContrast !== undefined) {
+      const bgColorFilter = new ColorMatrixFilter();
+      bgColorFilter.brightness(1 + (bgBrightness ?? 0), false);
+      bgColorFilter.contrast(1 + (bgContrast ?? 0), true);
+      layers.backgroundLayer.filters = [bgColorFilter];
+    }
     layers.environmentLayer.sortableChildren = true;
     layers.actorLayer.sortableChildren = true;
     layers.effectsLayer.sortableChildren = true;
@@ -1339,19 +1648,48 @@ export class PixelSceneController {
     this.app.stage.on("pointerupoutside", this.handleLayoutPointerUp);
 
     world.addChild(layers.backgroundLayer);
+    scaledSceneRoot.zIndex = 4; // above rain (1) and foregroundBgLayer (2)
     world.addChild(scaledSceneRoot);
 
     scaledSceneRoot.addChild(layers.environmentLayer);
     scaledSceneRoot.addChild(layers.actorLayer);
     scaledSceneRoot.addChild(layers.effectsLayer);
 
-    const resolvedBackgroundAssetId =
-      this.options.runtimeSceneBackgroundSrc &&
-      this.hasTextureAsset(this.options.runtimeSceneBackgroundSrc)
-        ? this.options.runtimeSceneBackgroundSrc
-        : sceneDefinition.backgroundAssetId;
+    if (this.options.runtimeSceneBackgroundLayers?.length) {
+      // Layer 1 goes behind everything (backgroundLayer, zIndex 0 in world).
+      // Layers 2+ go into a foreground container (zIndex 1 in world, above scaledSceneRoot
+      // which has default zIndex 0), so they render above rain and scene sprites.
+      const foregroundBgLayer = new Container();
+      foregroundBgLayer.zIndex = 2; // above rain (1), below scene items (4)
+      foregroundBgLayer.sortableChildren = true;
+      world.addChild(foregroundBgLayer);
 
-    layers.backgroundLayer.addChild(this.createBackgroundSprite(resolvedBackgroundAssetId));
+      this.options.runtimeSceneBackgroundLayers.forEach((layer, i) => {
+        const isVideo = PixelSceneController.isVideoSrc(layer.src);
+        const sprite = isVideo
+          ? this.createVideoBackgroundSprite(layer.src)
+          : (this.hasTextureAsset(layer.src) ? this.createBackgroundSprite(layer.src) : null);
+        if (!sprite) return;
+        if (i === 0) {
+          layers.backgroundLayer.addChild(sprite);
+        } else {
+          sprite.zIndex = i;
+          foregroundBgLayer.addChild(sprite);
+        }
+      });
+    } else if (this.options.runtimeSceneBackgroundSrc !== null) {
+      const src = this.options.runtimeSceneBackgroundSrc;
+      if (src && PixelSceneController.isVideoSrc(src)) {
+        const vs = this.createVideoBackgroundSprite(src);
+        if (vs) layers.backgroundLayer.addChild(vs);
+      } else {
+        const resolvedBackgroundAssetId =
+          src && this.hasTextureAsset(src)
+            ? src
+            : sceneDefinition.backgroundAssetId;
+        layers.backgroundLayer.addChild(this.createBackgroundSprite(resolvedBackgroundAssetId));
+      }
+    }
 
     if (sceneDefinition.enablePuddleShimmer) {
       const puddleShimmerSystem = new PuddleShimmerSystem();
@@ -1390,7 +1728,10 @@ export class PixelSceneController {
 
 
     const rainSystem = new RainSystem(sceneDefinition.rainConfig);
-    layers.effectsLayer.addChild(rainSystem.container);
+    // Rain renders directly in world (zIndex 1) so it sits above layer 1 (0),
+    // below foreground bg layers (2), and below scene items (scaledSceneRoot, 4).
+    rainSystem.container.zIndex = 1;
+    world.addChild(rainSystem.container);
     world.addChild(rainSystem.overlayContainer);
     this.rainSystem = rainSystem;
     this.effectSystems = [...this.effectSystems, rainSystem];
@@ -1412,8 +1753,9 @@ export class PixelSceneController {
 
       for (const spriteConfig of activeEnvironmentSprites) {
         const isRuntimeLight = spriteConfig.runtimeType === "light";
+        const isRuntimeSmoke = spriteConfig.runtimeType === "smoke";
 
-        if (!isRuntimeLight && !this.hasTextureAsset(spriteConfig.assetId)) {
+        if (!isRuntimeLight && !isRuntimeSmoke && !this.hasTextureAsset(spriteConfig.assetId)) {
           console.warn("[PixelSceneController] Skipping missing sprite texture", {
             sceneId: this.sceneId,
             spriteId: spriteConfig.id,
@@ -1428,6 +1770,16 @@ export class PixelSceneController {
         const isRuntimeCat = spriteConfig.runtimeType === "cat";
         const isRuntimeWindTurbine = spriteConfig.runtimeType === "wind-turbine";
         const isRuntimeStatue = spriteConfig.runtimeType === "statue";
+        const isRuntimeWorkingDesk = spriteConfig.runtimeType === "working-desk";
+        const isRuntimeVinylTurning = spriteConfig.runtimeType === "vinyl-turning";
+        const isRuntimeTwoCharacterFight = spriteConfig.runtimeType === "two-character-fight";
+        const isRuntimeSmallBreathAndBre = spriteConfig.runtimeType === "small-breath-and-bre";
+        const isRuntimeCharacterSlightlyT = spriteConfig.runtimeType === "character-slightly-t";
+        const isRuntimeAnimateOnlySubtle = spriteConfig.runtimeType === "animate-only-subtle";
+        const isRuntimeDontChangeTheIma = spriteConfig.runtimeType === "dont-change-the-ima";
+        const isRuntimeTheHandsEmergeFro = spriteConfig.runtimeType === "the-hands-emerge-fro";
+        const isRuntimeTypingGently = spriteConfig.runtimeType === "typing-gently";
+        const isRuntimeWebflowTyping = spriteConfig.runtimeType === "webflow-typing";
         const sprite =
           spriteConfig.id === "trash-active"
             ? this.createAnimatedEnvironmentSprite(spriteConfig, createTrashMouseIdleClip())
@@ -1440,10 +1792,32 @@ export class PixelSceneController {
                 ? this.createAnimatedEnvironmentSprite(spriteConfig, createCharacterIdleClip())
               : isRuntimeLight
                 ? this.createCustomLightSprite(spriteConfig)
+                : isRuntimeSmoke
+                  ? this.createSmokeHandleSprite(spriteConfig)
                 : isRuntimeWindTurbine
                   ? this.createAnimatedEnvironmentSprite(spriteConfig, createWindTurbineClip())
               : isRuntimeStatue
                   ? createStatueAnimatedSprite(spriteConfig)
+              : isRuntimeWorkingDesk
+                  ? this.createAnimatedEnvironmentSprite(spriteConfig, createWorkingDeskClip())
+              : isRuntimeVinylTurning
+                  ? this.createAnimatedEnvironmentSprite(spriteConfig, createVinylTurningClip())
+              : isRuntimeTwoCharacterFight
+                  ? this.createAnimatedEnvironmentSprite(spriteConfig, createTwoCharacterFightClip())
+              : isRuntimeSmallBreathAndBre
+                  ? this.createAnimatedEnvironmentSprite(spriteConfig, createSmallBreathAndBreClip())
+              : isRuntimeCharacterSlightlyT
+                  ? this.createAnimatedEnvironmentSprite(spriteConfig, createCharacterSlightlyTClip())
+              : isRuntimeAnimateOnlySubtle
+                  ? this.createAnimatedEnvironmentSprite(spriteConfig, createAnimateOnlySubtleClip())
+              : isRuntimeDontChangeTheIma
+                  ? this.createAnimatedEnvironmentSprite(spriteConfig, createDontChangeTheImaClip())
+              : isRuntimeTheHandsEmergeFro
+                  ? this.createAnimatedEnvironmentSprite(spriteConfig, createTheHandsEmergeFroClip())
+              : isRuntimeTypingGently
+                  ? this.createAnimatedEnvironmentSprite(spriteConfig, createTypingGentlyClip())
+              : isRuntimeWebflowTyping
+                  ? this.createAnimatedEnvironmentSprite(spriteConfig, createWebflowTypingClip())
               : spriteConfig.id === "scene3-cat" ||
                   spriteConfig.id === "scene4-cat" ||
                   isRuntimeCat
@@ -1478,7 +1852,8 @@ export class PixelSceneController {
           spriteConfig.id !== "scene4-character" &&
           !isRuntimeCharacter &&
           !isRuntimeCharacterIdle &&
-          !isRuntimeLight
+          !isRuntimeLight &&
+          !isRuntimeSmoke
         ) {
           sprite.eventMode = "static";
           sprite.cursor = "pointer";
@@ -1499,6 +1874,22 @@ export class PixelSceneController {
           });
           sprite.visible = this.lightingEnabled;
         }
+        if (spriteConfig.initiallyHidden) {
+          sprite.alpha = 0;
+        }
+
+        const targetLayer =
+          spriteConfig.layer === "actorLayer"
+            ? layers.actorLayer
+            : spriteConfig.layer === "effectsLayer"
+              ? layers.effectsLayer
+              : layers.environmentLayer;
+        if (spriteConfig.ignoreSceneScale) {
+          sprite.zIndex = spriteConfig.zIndex ?? 80;
+          world.addChild(sprite);
+        } else {
+          targetLayer.addChild(sprite);
+        }
         this.registerLayoutEditableSprite(
           spriteConfig,
           sprite,
@@ -1515,7 +1906,7 @@ export class PixelSceneController {
                 ? this.environmentAnimators.at(-1) instanceof SpriteAnimator
                   ? (this.environmentAnimators.at(-1) as SpriteAnimator)
                   : undefined
-              : isRuntimeWindTurbine
+              : isRuntimeWindTurbine || isRuntimeWorkingDesk || isRuntimeVinylTurning || isRuntimeTwoCharacterFight || isRuntimeSmallBreathAndBre || isRuntimeCharacterSlightlyT || isRuntimeAnimateOnlySubtle || isRuntimeDontChangeTheIma || isRuntimeTheHandsEmergeFro || isRuntimeTypingGently || isRuntimeWebflowTyping
                 ? this.environmentAnimators.at(-1) instanceof SpriteAnimator
                   ? (this.environmentAnimators.at(-1) as SpriteAnimator)
                   : undefined
@@ -1527,21 +1918,27 @@ export class PixelSceneController {
                   : undefined
                 : undefined,
         );
-        const targetLayer =
-          spriteConfig.layer === "actorLayer"
-            ? layers.actorLayer
-            : spriteConfig.layer === "effectsLayer"
-              ? layers.effectsLayer
-              : layers.environmentLayer;
-        if (spriteConfig.ignoreSceneScale) {
-          sprite.zIndex = spriteConfig.zIndex ?? 80;
-          world.addChild(sprite);
-        } else {
-          targetLayer.addChild(sprite);
-        }
         if (isRuntimeLight) {
           this.applyCustomLightConfig(spriteConfig.id);
           targetLayer.sortChildren();
+        }
+        if (isRuntimeSmoke) {
+          const smokeSystem = new SceneThreeChimneySmokeSystem();
+          const sc = spriteConfig.smokeControls ?? {};
+          smokeSystem.setControls({
+            x: spriteConfig.x,
+            y: spriteConfig.y,
+            scale: sc.scale ?? 1,
+            density: sc.density ?? 1.42,
+            drift: sc.drift ?? 0.74,
+            rise: sc.rise ?? 1,
+            speed: sc.speed ?? 1,
+            zIndex: (spriteConfig.zIndex ?? 12) - 0.5,
+          });
+          targetLayer.addChild(smokeSystem.container);
+          targetLayer.sortChildren();
+          this.runtimeSmokeSystemsById.set(spriteConfig.id, smokeSystem);
+          this.effectSystems = [...this.effectSystems, smokeSystem];
         }
       }
 
@@ -1628,7 +2025,9 @@ export class PixelSceneController {
     if (sceneDefinition.enableEffectSprites && !hasRuntimeSceneSprites) {
       for (const spriteConfig of effectSprites) {
         const sprite = this.createSprite(spriteConfig);
-        if (spriteConfig.alpha !== undefined) {
+        if (spriteConfig.initiallyHidden) {
+          sprite.alpha = 0;
+        } else if (spriteConfig.alpha !== undefined) {
           sprite.alpha = spriteConfig.alpha;
         }
 
@@ -1714,6 +2113,37 @@ export class PixelSceneController {
     context.fillRect(0, 0, 256, 256);
 
     return Texture.from(canvas);
+  }
+
+  private createSmokeHandleSprite(config: SceneSpriteConfig) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 40;
+    canvas.height = 40;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.beginPath();
+      ctx.arc(20, 20, 17, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(180,180,200,0.45)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.7)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.75)";
+      ctx.beginPath(); ctx.arc(20, 22, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(14, 20, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(26, 20, 5, 0, Math.PI * 2); ctx.fill();
+    }
+    const sprite = new Sprite(Texture.from(canvas));
+    sprite.label = config.id;
+    sprite.anchor.set(0.5, 0.5);
+    sprite.position.set(config.x, config.y);
+    sprite.width = 40;
+    sprite.height = 40;
+    sprite.alpha = 0;
+    sprite.zIndex = config.zIndex ?? 12;
+    sprite.eventMode = "static";
+    sprite.cursor = "pointer";
+    return sprite;
   }
 
   private createCustomLightSprite(config: SceneSpriteConfig) {
@@ -1934,6 +2364,30 @@ export class PixelSceneController {
           event.stopPropagation();
           return;
         }
+        // SpriteAnimator click toggle (animated sprites with animControlEnabled + animClickFrame)
+        if (animator && config.animControlEnabled && config.animClickFrame !== undefined) {
+          const baseClip = animator.baseClip;
+          if (baseClip && baseClip.frames.length > 0) {
+            const restFrame = Math.min(config.animStopFrame ?? 0, baseClip.frames.length - 1);
+            const clickFrame = Math.min(config.animClickFrame, baseClip.frames.length - 1);
+            const currentState = this.statueToggleState.get(config.id) ?? 0;
+            if (currentState === 0) {
+              this.statueToggleState.set(config.id, 1);
+              const forwardFrames = baseClip.frames.slice(restFrame, clickFrame + 1);
+              if (forwardFrames.length > 0) {
+                animator.forcePlay({ id: `${config.id}-click-fwd`, frames: forwardFrames, loop: false });
+              }
+            } else {
+              this.statueToggleState.set(config.id, 0);
+              const reverseFrames = [...baseClip.frames.slice(restFrame, clickFrame + 1)].reverse();
+              if (reverseFrames.length > 0) {
+                animator.forcePlay({ id: `${config.id}-click-rev`, frames: reverseFrames, loop: false });
+              }
+            }
+            event.stopPropagation();
+            return;
+          }
+        }
         const frames = config.interaction?.clickAnimateFrames;
         if (frames && frames.length > 0) {
           this.playClickAnimation(config.id, frames, config.interaction?.clickAnimateFrameMs ?? 80);
@@ -2016,7 +2470,10 @@ export class PixelSceneController {
       resolvedInteraction.drawer !== undefined ||
       resolvedInteraction.givesCollectibleItemId !== undefined ||
       resolvedInteraction.acceptedCollectibleItemId !== undefined ||
-      resolvedInteraction.hasGame
+      resolvedInteraction.hasGame ||
+      (resolvedInteraction.slots && resolvedInteraction.slots.length > 0) ||
+      resolvedInteraction.animTriggerItemId !== undefined ||
+      resolvedInteraction.spotifyUrl !== undefined
         ? resolvedInteraction
         : undefined;
 
@@ -2046,9 +2503,19 @@ export class PixelSceneController {
       light: config.light,
       particles: config.particles,
       shadow: config.shadow,
+      smokeControls: config.runtimeType === "smoke"
+        ? (this.runtimeSmokeSystemsById.get(config.id)?.getControls()
+            ? (() => {
+                const c = this.runtimeSmokeSystemsById.get(config.id)!.getControls();
+                return { density: c.density, drift: c.drift, rise: c.rise, speed: c.speed, scale: c.scale };
+              })()
+            : config.smokeControls)
+        : config.smokeControls,
+      initiallyHidden: config.initiallyHidden,
       animSpeed: config.animSpeed,
       animStopFrame: config.animStopFrame,
       animClickFrame: config.animClickFrame,
+      animControlEnabled: config.animControlEnabled,
     };
   }
 
@@ -2101,6 +2568,16 @@ export class PixelSceneController {
       gameId: layoutConfig?.gameId,
       onGameWinAction: layoutConfig?.onGameWinAction,
       onGameWinItemId: layoutConfig?.onGameWinItemId,
+      slots: layoutConfig?.slots,
+      slotsRewardItemId: layoutConfig?.slotsRewardItemId,
+      animTriggerItemId: layoutConfig?.animTriggerItemId,
+      spotifyUrl: layoutConfig?.spotifyUrl,
+      youtubeUrl: layoutConfig?.youtubeUrl,
+      hasYesNo: layoutConfig?.hasYesNo,
+      yesNoQuestion: layoutConfig?.yesNoQuestion,
+      yesNoYesAction: layoutConfig?.yesNoYesAction,
+      yesNoYesScene: layoutConfig?.yesNoYesScene,
+      yesNoNoMessage: layoutConfig?.yesNoNoMessage,
     };
   }
 
@@ -2302,7 +2779,18 @@ export class PixelSceneController {
     config: SceneSpriteConfig,
     clip: AnimationClip,
   ) {
-    const texture = clip.frames[0]?.texture ?? (Assets.get(config.assetId) as Texture);
+    // If animation control is enabled and animStopFrame is set, trim the clip.
+    // stopFrame=0 → single frame (static); stopFrame=N → loops frames 0..N.
+    const effectiveClip: AnimationClip =
+      config.animControlEnabled && config.animStopFrame !== undefined
+        ? {
+            ...clip,
+            frames: clip.frames.slice(0, config.animStopFrame + 1),
+            loop: config.animStopFrame > 0,
+          }
+        : clip;
+
+    const texture = effectiveClip.frames[0]?.texture ?? (Assets.get(config.assetId) as Texture);
     const sprite = new Sprite(texture);
 
     sprite.label = config.id;
@@ -2320,8 +2808,9 @@ export class PixelSceneController {
     }
 
     const animator = new SpriteAnimator(sprite);
+    animator.baseClip = clip; // store original full clip for stop-frame updates
     animator.setSize(config.width, config.height);
-    animator.play(clip);
+    animator.play(effectiveClip);
     this.environmentAnimators.push(animator);
 
     return sprite;
@@ -2428,13 +2917,16 @@ export class PixelSceneController {
       effectSystem.update(deltaMs);
     }
 
-    // Animate water ripple displacement
+    // Animate water ripple displacement + sync animated shadow textures
     for (const entry of this.layoutEditableSpritesById.values()) {
       if (entry.displacementSprite && entry.displacementFilter) {
         entry.waterElapsedMs = (entry.waterElapsedMs ?? 0) + deltaMs;
         const t = entry.waterElapsedMs * 0.0005;
         entry.displacementSprite.x = Math.sin(t) * 12;
         entry.displacementSprite.y = t * 20 % (entry.sprite.height || 64);
+      }
+      if (entry.shadowSprite && entry.animator) {
+        entry.shadowSprite.texture = entry.sprite.texture;
       }
     }
 
@@ -2451,6 +2943,19 @@ export class PixelSceneController {
         runtime.sprite.width = runtime.baseWidth * (1 + scalePulse);
         runtime.sprite.height = runtime.baseHeight * (1 + scalePulse * 0.76);
         runtime.particleSystem?.update(deltaMs);
+      }
+    }
+
+    for (const [spriteId, smokeSystem] of this.runtimeSmokeSystemsById) {
+      const entry = this.layoutEditableSpritesById.get(spriteId);
+      if (entry) {
+        const sx = entry.sprite.position.x;
+        const sy = entry.sprite.position.y;
+        const sz = entry.sprite.zIndex;
+        const current = smokeSystem.getControls();
+        if (current.x !== sx || current.y !== sy || current.zIndex !== sz - 0.5) {
+          smokeSystem.setControls({ x: sx, y: sy, zIndex: sz - 0.5 });
+        }
       }
     }
 
@@ -2958,6 +3463,39 @@ export class PixelSceneController {
     this.collectedLayoutSpriteIds.add(objectId);
     entry.sprite.visible = false;
     entry.sprite.eventMode = "none";
+  }
+
+  public hideLayoutSprite(objectId: string) {
+    const entry = this.layoutEditableSpritesById.get(objectId);
+    if (!entry) return;
+    entry.sprite.alpha = 0;
+    const smokeSystem = this.runtimeSmokeSystemsById.get(objectId);
+    if (smokeSystem) smokeSystem.container.visible = false;
+  }
+
+  public showLayoutSprite(objectId: string, animate = false) {
+    const entry = this.layoutEditableSpritesById.get(objectId);
+    if (!entry) return;
+    const targetAlpha = entry.config.alpha ?? 1;
+    const smokeSystem = this.runtimeSmokeSystemsById.get(objectId);
+    if (smokeSystem) smokeSystem.container.visible = true;
+    if (animate) {
+      entry.sprite.alpha = 0;
+      gsap.to(entry.sprite, { alpha: targetAlpha, duration: 0.8, ease: "power2.out" });
+    } else {
+      entry.sprite.alpha = targetAlpha;
+    }
+  }
+
+  public async changeLayoutSpriteTexture(objectId: string, src: string) {
+    const entry = this.layoutEditableSpritesById.get(objectId);
+    if (!entry) return;
+    try {
+      const texture = await Assets.load(src);
+      entry.sprite.texture = texture;
+    } catch {
+      // src failed to load, leave texture unchanged
+    }
   }
 
   private showActionMenuIcons(menuId: string) {

@@ -2066,3 +2066,87 @@ a {
     width: min(88vw, 520px);
   }
 }
+
+/* ─── Yes/No Modal ──────────────────────────────────────────────────────── */
+.yes-no-modal {
+  background: #0e0b06;
+  border: 2px solid #f0b830;
+  box-shadow: 0 0 0 4px #0e0b06, 0 0 0 6px #a07030, 4px 8px 24px rgba(0,0,0,.7);
+  padding: 24px 28px 20px;
+  max-width: 360px;
+  width: 100%;
+  image-rendering: pixelated;
+}
+
+.yes-no-modal__question {
+  color: #f0b830;
+  font-size: 11px;
+  line-height: 1.7;
+  margin: 0 0 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.yes-no-modal__hint {
+  color: #a07030;
+  font-size: 9px;
+  margin: -10px 0 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.yes-no-modal__buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.yes-no-modal__btn {
+  flex: 1;
+  padding: 8px 0;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  border: 2px solid;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: opacity 0.1s;
+}
+.yes-no-modal__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.yes-no-modal__btn--yes {
+  background: #f0b830;
+  border-color: #f0b830;
+  color: #0e0b06;
+}
+.yes-no-modal__btn--yes:hover:not(:disabled) { background: #ffd060; border-color: #ffd060; }
+
+.yes-no-modal__btn--no {
+  background: transparent;
+  border-color: #a07030;
+  color: #a07030;
+}
+.yes-no-modal__btn--no:hover { border-color: #f0b830; color: #f0b830; }
+
+.yes-no-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.yes-no-modal__input {
+  background: #1a1408;
+  border: 1px solid #a07030;
+  color: #f0b830;
+  font-family: inherit;
+  font-size: 9px;
+  padding: 7px 9px;
+  outline: none;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.yes-no-modal__input:focus { border-color: #f0b830; }
+.yes-no-modal__textarea { resize: none; }
+
+@media (max-width: 480px) {
+  .yes-no-modal { padding: 18px 16px 16px; }
+}

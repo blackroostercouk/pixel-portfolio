@@ -11,12 +11,21 @@ import type { PixelSceneController } from "@/lib/game/pixel-scene-controller";
 import type { SceneThreeSmokeControls, LayoutSpriteSnapshot, SceneSpriteRainSplashSegmentConfig, CollectibleItemDefinition } from "@/lib/game/types";
 import type { SceneId } from "@/lib/game/core/game-state";
 import { createDefaultRainSplashConfig } from "@/lib/game/layout-utils";
+import builderScenesSnapshot from "@/lib/game/builder-scenes.json";
+
+export type BackgroundLayerDef = { src: string };
 
 export type BuilderSceneDefinition = {
   id: string;
   label: string;
   backgroundSrc: string | null;
+  backgroundLayers?: BackgroundLayerDef[];
+  backgroundBrightness?: number;
+  backgroundContrast?: number;
+  backgroundPlaybackRate?: number;
   sprites: LayoutSpriteSnapshot[];
+  rainEnabled?: boolean;
+  starsEnabled?: boolean;
 };
 
 export type SceneOverrideDefinition = {
@@ -195,12 +204,17 @@ export function useSceneLayoutEditor(
     const nextJson = JSON.stringify(builderScenes);
     if (nextJson === lastPersistedBuilderScenesJsonRef.current) return;
 
+    // Always backup to localStorage so changes survive a network failure
+    try { localStorage.setItem("builderScenes_backup", nextJson); } catch { /* ignore */ }
+
     autoPersistBuilderScenesTimeoutRef.current = window.setTimeout(() => {
+      setLayoutSaveState("saving");
       void persistBuilderScenes(builderScenes)
         .then(() => {
           lastPersistedBuilderScenesJsonRef.current = JSON.stringify(builderScenes);
+          markLayoutSaveSuccess();
         })
-        .catch(() => { /* silent — manual Save still works */ })
+        .catch(() => markLayoutSaveError())
         .finally(() => {
           autoPersistBuilderScenesTimeoutRef.current = null;
         });
@@ -240,7 +254,27 @@ export function useSceneLayoutEditor(
         const res = await fetch("/api/builder-scenes");
         if (!res.ok) return;
         const data = (await res.json()) as { scenes?: BuilderSceneDefinition[] };
-        const scenes = data.scenes ?? [];
+        let scenes = data.scenes ?? [];
+
+        // Recover sprites: prefer whichever source has more sprites per scene.
+        // Priority: localStorage (most recent edits) > JSON snapshot (hardcoded) > Supabase
+        const snapshotScenes = builderScenesSnapshot as BuilderSceneDefinition[];
+
+        let localBackup: BuilderSceneDefinition[] = [];
+        try {
+          const backupJson = localStorage.getItem("builderScenes_backup");
+          if (backupJson) localBackup = JSON.parse(backupJson) as BuilderSceneDefinition[];
+        } catch { /* ignore */ }
+
+        scenes = scenes.map((scene) => {
+          const local    = localBackup.find((b) => b.id === scene.id);
+          const snapshot = snapshotScenes.find((b) => b.id === scene.id);
+          const best = [scene, local, snapshot]
+            .filter(Boolean)
+            .reduce((a, b) => ((b!.sprites.length > a!.sprites.length) ? b : a));
+          return best ?? scene;
+        });
+
         if (!cancelled && scenes.length > 0) {
           setBuilderScenes(scenes);
           lastPersistedBuilderScenesJsonRef.current = JSON.stringify(scenes);
@@ -610,6 +644,39 @@ export function useSceneLayoutEditor(
     setSelectedLayoutSpriteId(nextId);
   };
 
+  const addRuntimeSmokeToScene = async () => {
+    const nextId = `smoke-${Date.now()}`;
+    const nextSmoke: LayoutSpriteSnapshot = {
+      id: nextId,
+      assetId: nextId,
+      runtimeType: "smoke",
+      x: 960,
+      y: 640,
+      width: 40,
+      height: 40,
+      anchorX: 0.5,
+      anchorY: 0.5,
+      layer: "effectsLayer",
+      zIndex: 12,
+      smokeControls: { density: 1.42, drift: 0.74, rise: 1, speed: 1, scale: 1 },
+    };
+
+    if (currentSceneId === "scene-builder" && activeBuilderScene) {
+      setBuilderScenes((current) =>
+        current.map((s) =>
+          s.id === activeBuilderScene.id
+            ? { ...s, sprites: [...s.sprites, nextSmoke] }
+            : s,
+        ),
+      );
+      setBuilderSceneRenderVersion((v) => v + 1);
+    } else {
+      await addSpriteToCurrentScene(nextSmoke);
+    }
+
+    setSelectedLayoutSpriteId(nextId);
+  };
+
   const addSpriteToCurrentScene = async (sprite: LayoutSpriteSnapshot) => {
     const existingSprites =
       sceneOverridesRef.current[currentSceneId as SceneId]?.sprites ?? effectiveLayoutSprites;
@@ -765,6 +832,7 @@ export function useSceneLayoutEditor(
     saveActiveBuilderScene,
     addBuilderItemToScene,
     addRuntimeLightToScene,
+    addRuntimeSmokeToScene,
     handleBuilderAssetUpload,
     markLayoutSaveSuccess,
     markLayoutSaveError,
@@ -810,6 +878,86 @@ function buildAnimatedPresetSprite(
     return {
       id: nextId, assetId: "statue", runtimeType: "statue",
       x: 960, y: 1000, width: 260, height: 299,
+      anchorX: 0.5, anchorY: 1,
+      layer: "environmentLayer", zIndex: 2,
+    };
+  }
+  if (preset === "working-desk") {
+    return {
+      id: nextId, assetId: "workingDesk", runtimeType: "working-desk",
+      x: 960, y: 1000, width: 300, height: 300,
+      anchorX: 0.5, anchorY: 1,
+      layer: "environmentLayer", zIndex: 2,
+    };
+  }
+  if (preset === "vinyl-turning") {
+    return {
+      id: nextId, assetId: "vinylTurning", runtimeType: "vinyl-turning",
+      x: 960, y: 1000, width: 200, height: 141,
+      anchorX: 0.5, anchorY: 1,
+      layer: "environmentLayer", zIndex: 2,
+    };
+  }
+  if (preset === "two-character-fight") {
+    return {
+      id: nextId, assetId: "twoCharacterFight", runtimeType: "two-character-fight",
+      x: 960, y: 1071, width: 200, height: 309,
+      anchorX: 0.5, anchorY: 1,
+      layer: "environmentLayer", zIndex: 2,
+    };
+  }
+  if (preset === "small-breath-and-bre") {
+    return {
+      id: nextId, assetId: "smallBreathAndBre", runtimeType: "small-breath-and-bre",
+      x: 960, y: 1071, width: 261, height: 204,
+      anchorX: 0.5, anchorY: 1,
+      layer: "environmentLayer", zIndex: 2,
+    };
+  }
+  if (preset === "character-slightly-t") {
+    return {
+      id: nextId, assetId: "characterSlightlyT", runtimeType: "character-slightly-t",
+      x: 960, y: 1071, width: 404, height: 174,
+      anchorX: 0.5, anchorY: 1,
+      layer: "environmentLayer", zIndex: 2,
+    };
+  }
+  if (preset === "animate-only-subtle") {
+    return {
+      id: nextId, assetId: "animateOnlySubtle", runtimeType: "animate-only-subtle",
+      x: 960, y: 1071, width: 404, height: 174,
+      anchorX: 0.5, anchorY: 1,
+      layer: "environmentLayer", zIndex: 2,
+    };
+  }
+  if (preset === "the-hands-emerge-fro") {
+    return {
+      id: nextId, assetId: "theHandsEmergeFro", runtimeType: "the-hands-emerge-fro",
+      x: 960, y: 1071, width: 218, height: 192,
+      anchorX: 0.5, anchorY: 1,
+      layer: "environmentLayer", zIndex: 2,
+    };
+  }
+  if (preset === "typing-gently") {
+    return {
+      id: nextId, assetId: "typingGently", runtimeType: "typing-gently",
+      x: 960, y: 1071, width: 506, height: 326,
+      anchorX: 0.5, anchorY: 1,
+      layer: "environmentLayer", zIndex: 2,
+    };
+  }
+  if (preset === "webflow-typing") {
+    return {
+      id: nextId, assetId: "webflowTyping", runtimeType: "webflow-typing",
+      x: 960, y: 1071, width: 516, height: 327,
+      anchorX: 0.5, anchorY: 1,
+      layer: "environmentLayer", zIndex: 2,
+    };
+  }
+  if (preset === "dont-change-the-ima") {
+    return {
+      id: nextId, assetId: "dontChangeTheIma", runtimeType: "dont-change-the-ima",
+      x: 960, y: 1071, width: 206, height: 295,
       anchorX: 0.5, anchorY: 1,
       layer: "environmentLayer", zIndex: 2,
     };

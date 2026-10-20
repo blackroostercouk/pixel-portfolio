@@ -81,11 +81,91 @@ const sceneTwoCharacterTalkAssets = Array.from({ length: 25 }, (_, index) => {
   };
 });
 
+const vinylTurningAssets = Array.from({ length: 36 }, (_, index) => {
+  const frameNumber = index.toString().padStart(3, "0");
+  return {
+    alias: `vinyl-turning-${frameNumber}`,
+    src: `/assets/scene/vinyl-turning/frame_${frameNumber}.webp`,
+  };
+});
+
+const workingDeskAssets = Array.from({ length: 36 }, (_, index) => {
+  const frameNumber = index.toString().padStart(3, "0");
+  return {
+    alias: `working-desk-${frameNumber}`,
+    src: `/assets/scene/working-desk/frame_${frameNumber}.webp`,
+  };
+});
+
 const statueAssets = Array.from({ length: 36 }, (_, index) => {
   const frameNumber = index.toString().padStart(3, "0");
   return {
     alias: `statue-${frameNumber}`,
     src: `/assets/scene/statue/frame_${frameNumber}.webp`,
+  };
+});
+
+const twoCharacterFightAssets = Array.from({ length: 36 }, (_, index) => {
+  const frameNumber = index.toString().padStart(3, "0");
+  return {
+    alias: `two-character-fight-${frameNumber}`,
+    src: `/assets/scene/two-character-fight/frame_${frameNumber}.webp`,
+  };
+});
+
+const smallBreathAndBreAssets = Array.from({ length: 36 }, (_, index) => {
+  const frameNumber = index.toString().padStart(3, "0");
+  return {
+    alias: `small-breath-and-bre-${frameNumber}`,
+    src: `/assets/scene/small-breath-and-bre/frame_${frameNumber}.webp`,
+  };
+});
+
+const theHandsEmergeFroAssets = Array.from({ length: 36 }, (_, index) => {
+  const frameNumber = index.toString().padStart(3, "0");
+  return {
+    alias: `the-hands-emerge-fro-${frameNumber}`,
+    src: `/assets/scene/the-hands-emerge-fro/frame_${frameNumber}.webp`,
+  };
+});
+
+const dontChangeTheImaAssets = Array.from({ length: 36 }, (_, index) => {
+  const frameNumber = index.toString().padStart(3, "0");
+  return {
+    alias: `dont-change-the-ima-${frameNumber}`,
+    src: `/assets/scene/dont-change-the-ima/frame_${frameNumber}.webp`,
+  };
+});
+
+const animateOnlySubtleAssets = Array.from({ length: 36 }, (_, index) => {
+  const frameNumber = index.toString().padStart(3, "0");
+  return {
+    alias: `animate-only-subtle-${frameNumber}`,
+    src: `/assets/scene/animate-only-subtle/frame_${frameNumber}.webp`,
+  };
+});
+
+const characterSlightlyTAssets = Array.from({ length: 36 }, (_, index) => {
+  const frameNumber = index.toString().padStart(3, "0");
+  return {
+    alias: `character-slightly-t-${frameNumber}`,
+    src: `/assets/scene/character-slightly-t/frame_${frameNumber}.webp`,
+  };
+});
+
+const webflowTypingAssets = Array.from({ length: 36 }, (_, index) => {
+  const frameNumber = index.toString().padStart(3, "0");
+  return {
+    alias: `webflow-typing-${frameNumber}`,
+    src: `/assets/scene/webflow-typing/frame_${frameNumber}.webp`,
+  };
+});
+
+const typingGentlyAssets = Array.from({ length: 36 }, (_, index) => {
+  const frameNumber = index.toString().padStart(3, "0");
+  return {
+    alias: `typing-gently-${frameNumber}`,
+    src: `/assets/scene/typing-gently/frame_${frameNumber}.webp`,
   };
 });
 
@@ -173,6 +253,16 @@ export const sceneAssetsManifest: AssetsManifest = {
         { alias: "ufo", src: "/assets/scene/ufo/frame_010.webp" },
         { alias: "windTurbine", src: "/assets/scene/wind-turbine/frame_000.webp" },
         { alias: "statue", src: "/assets/scene/statue/frame_000.webp" },
+        { alias: "workingDesk", src: "/assets/scene/working-desk/frame_000.webp" },
+        { alias: "vinylTurning", src: "/assets/scene/vinyl-turning/frame_000.webp" },
+        { alias: "twoCharacterFight", src: "/assets/scene/two-character-fight/frame_000.webp" },
+        { alias: "smallBreathAndBre", src: "/assets/scene/small-breath-and-bre/frame_000.webp" },
+        { alias: "characterSlightlyT", src: "/assets/scene/character-slightly-t/frame_000.webp" },
+        { alias: "animateOnlySubtle", src: "/assets/scene/animate-only-subtle/frame_000.webp" },
+        { alias: "dontChangeTheIma", src: "/assets/scene/dont-change-the-ima/frame_000.webp" },
+        { alias: "theHandsEmergeFro", src: "/assets/scene/the-hands-emerge-fro/frame_000.webp" },
+        { alias: "typingGently", src: "/assets/scene/typing-gently/frame_000.webp" },
+        { alias: "webflowTyping", src: "/assets/scene/webflow-typing/frame_000.webp" },
         ...characterIdleAssets,
         ...characterCloseLaptopAssets,
         ...catIdleAssets,
@@ -184,6 +274,16 @@ export const sceneAssetsManifest: AssetsManifest = {
         ...ufoAssets,
         ...windTurbineAssets,
         ...statueAssets,
+        ...workingDeskAssets,
+        ...vinylTurningAssets,
+        ...twoCharacterFightAssets,
+        ...smallBreathAndBreAssets,
+        ...characterSlightlyTAssets,
+        ...animateOnlySubtleAssets,
+        ...dontChangeTheImaAssets,
+        ...theHandsEmergeFroAssets,
+        ...typingGentlyAssets,
+        ...webflowTypingAssets,
       ],
     },
   ],

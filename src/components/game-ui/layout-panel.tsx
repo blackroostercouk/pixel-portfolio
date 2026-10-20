@@ -129,9 +129,10 @@ import type {
   SceneSpriteVisualConfig,
   SceneSpriteRainSplashSegmentConfig,
   SceneThreeSmokeControls,
+  SceneSpriteRuntimeSmokeConfig,
 } from "@/lib/game/types";
-import type { BuilderSceneDefinition, LayoutSaveState } from "@/lib/game/hooks/use-scene-layout-editor";
-import type { CollectibleItemDefinition } from "@/lib/game/types";
+import type { BuilderSceneDefinition, LayoutSaveState, BackgroundLayerDef } from "@/lib/game/hooks/use-scene-layout-editor";
+import type { CollectibleItemDefinition, InteractionSlot } from "@/lib/game/types";
 import type { BuilderAssetType, BuilderAnimatedPreset } from "@/lib/game/builder-constants";
 
 // ─── Section accordion ────────────────────────────────────────────────────────
@@ -166,8 +167,10 @@ type LayoutPanelProps = {
   // Scene controls
   isLightingEnabled: boolean;
   isRainEnabled: boolean;
+  isStarsEnabled: boolean;
   onLightingChange: (v: boolean) => void;
   onRainChange: (v: boolean) => void;
+  onStarsChange: (v: boolean) => void;
   currentSceneId: string;
 
   // Save state
@@ -243,6 +246,7 @@ type LayoutPanelProps = {
   onBuilderAssetUpload: (event: ChangeEvent<HTMLInputElement>, kind: "background" | "item") => void;
   onAddItemToScene: () => void;
   onAddLight: () => void;
+  onAddSmoke: () => void;
 
   collectibleItems: CollectibleItemDefinition[];
 
@@ -259,8 +263,10 @@ export function LayoutPanel({
   controllerRef,
   isLightingEnabled,
   isRainEnabled,
+  isStarsEnabled,
   onLightingChange,
   onRainChange,
+  onStarsChange,
   currentSceneId,
   layoutSaveState,
   onCopyJson,
@@ -316,6 +322,7 @@ export function LayoutPanel({
   onBuilderAssetUpload,
   onAddItemToScene,
   onAddLight,
+  onAddSmoke,
   collectibleItems,
   onOpenInfoEditor,
   onOpenDrawerEditor,
@@ -392,6 +399,14 @@ export function LayoutPanel({
               onChange={(e) => onRainChange(e.target.checked)}
             />
             <span>Rain</span>
+          </label>
+          <label className="layout-panel__toggle">
+            <input
+              type="checkbox"
+              checked={isStarsEnabled}
+              onChange={(e) => onStarsChange(e.target.checked)}
+            />
+            <span>Stars</span>
           </label>
         </div>
       </LayoutPanelSection>
@@ -514,29 +529,143 @@ export function LayoutPanel({
         </LayoutPanelSection>
       ) : null}
 
-      {/* Background picker (builder only) */}
+      {/* Background layer picker (builder only) */}
       {isBuilderScene ? (
         <LayoutPanelSection title="Background">
-          <label className="layout-panel__field">
-            <span className="layout-panel__label">Choose Background</span>
-            <select
-              className="layout-panel__select"
-              value={activeBuilderScene?.backgroundSrc ?? ""}
-              onChange={(e) => onUpdateActiveBuilderScene({ backgroundSrc: e.target.value || null })}
+          {/* ── Single backgroundSrc ── */}
+          {activeBuilderScene?.backgroundSrc && (
+            <div className="layout-panel__field" style={{ gap: 4, alignItems: "center" }}>
+              <span className="layout-panel__label" style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                BG: {activeBuilderScene.backgroundSrc.split("/").pop()}
+              </span>
+              <button
+                type="button"
+                className="layout-panel__icon-btn layout-panel__icon-btn--danger"
+                onClick={() => onUpdateActiveBuilderScene({ backgroundSrc: null })}
+                title="Remove background"
+              >✕</button>
+            </div>
+          )}
+
+          {/* ── Background layers ── */}
+          {(activeBuilderScene?.backgroundLayers ?? []).map((layer, i) => {
+            const layers = activeBuilderScene?.backgroundLayers ?? [];
+            const updateLayer = (patch: Partial<BackgroundLayerDef>) => {
+              const next = layers.map((l, idx) => idx === i ? { ...l, ...patch } : l);
+              onUpdateActiveBuilderScene({ backgroundLayers: next });
+            };
+            const removeLayer = () => {
+              const next = layers.filter((_, idx) => idx !== i);
+              onUpdateActiveBuilderScene({ backgroundLayers: next });
+            };
+            const moveUp = () => {
+              if (i === 0) return;
+              const next = [...layers];
+              [next[i - 1], next[i]] = [next[i], next[i - 1]];
+              onUpdateActiveBuilderScene({ backgroundLayers: next });
+            };
+            const moveDown = () => {
+              if (i === layers.length - 1) return;
+              const next = [...layers];
+              [next[i], next[i + 1]] = [next[i + 1], next[i]];
+              onUpdateActiveBuilderScene({ backgroundLayers: next });
+            };
+            return (
+              <div key={i} className="layout-panel__field" style={{ gap: 4, flexDirection: "column" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span className="layout-panel__label" style={{ flex: 1 }}>Layer {i + 1}</span>
+                  <button type="button" className="layout-panel__icon-btn" onClick={moveUp} disabled={i === 0} title="Move up">↑</button>
+                  <button type="button" className="layout-panel__icon-btn" onClick={moveDown} disabled={i === layers.length - 1} title="Move down">↓</button>
+                  <button type="button" className="layout-panel__icon-btn layout-panel__icon-btn--danger" onClick={removeLayer} title="Remove layer">✕</button>
+                </div>
+                <select
+                  className="layout-panel__select"
+                  value={layer.src}
+                  onChange={(e) => updateLayer({ src: e.target.value })}
+                >
+                  <option value="">— choose —</option>
+                  {builderAssetOptions.backgrounds.map((src) => (
+                    <option key={src} value={src}>{src}</option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
+
+          {(activeBuilderScene?.backgroundLayers?.length ?? 0) < 3 && (
+            <button
+              type="button"
+              className="layout-panel__action"
+              onClick={() => {
+                const current = activeBuilderScene?.backgroundLayers ?? [];
+                onUpdateActiveBuilderScene({ backgroundLayers: [...current, { src: "" }] });
+              }}
             >
-              <option value="">No background</option>
-              {builderAssetOptions.backgrounds.map((src) => (
-                <option key={src} value={src}>{src}</option>
-              ))}
-            </select>
-          </label>
+              + Add Layer
+            </button>
+          )}
+
+          {(() => {
+            const bgSrc = activeBuilderScene?.backgroundSrc ?? "";
+            const isVideoBg = /\.(mp4|webm)(\?|$)/i.test(bgSrc) ||
+              (activeBuilderScene?.backgroundLayers ?? []).some(l => /\.(mp4|webm)(\?|$)/i.test(l.src));
+            return isVideoBg ? (
+              <label className="layout-panel__field">
+                <span className="layout-panel__label">
+                  Speed {((activeBuilderScene?.backgroundPlaybackRate ?? 1) * 100).toFixed(0)}%
+                </span>
+                <input
+                  className="layout-panel__input"
+                  type="range"
+                  min={10}
+                  max={200}
+                  step={5}
+                  value={Math.round((activeBuilderScene?.backgroundPlaybackRate ?? 1) * 100)}
+                  onChange={(e) => onUpdateActiveBuilderScene({ backgroundPlaybackRate: Number(e.target.value) / 100 })}
+                />
+              </label>
+            ) : null;
+          })()}
+
+          {(activeBuilderScene?.backgroundSrc || (activeBuilderScene?.backgroundLayers?.length ?? 0) > 0) && (
+            <>
+              <label className="layout-panel__field">
+                <span className="layout-panel__label">
+                  Brightness {((activeBuilderScene?.backgroundBrightness ?? 0) * 100).toFixed(0)}%
+                </span>
+                <input
+                  className="layout-panel__input"
+                  type="range"
+                  min={-100}
+                  max={100}
+                  step={1}
+                  value={Math.round((activeBuilderScene?.backgroundBrightness ?? 0) * 100)}
+                  onChange={(e) => onUpdateActiveBuilderScene({ backgroundBrightness: Number(e.target.value) / 100 })}
+                />
+              </label>
+              <label className="layout-panel__field">
+                <span className="layout-panel__label">
+                  Contrast {((activeBuilderScene?.backgroundContrast ?? 0) * 100).toFixed(0)}%
+                </span>
+                <input
+                  className="layout-panel__input"
+                  type="range"
+                  min={-100}
+                  max={100}
+                  step={1}
+                  value={Math.round((activeBuilderScene?.backgroundContrast ?? 0) * 100)}
+                  onChange={(e) => onUpdateActiveBuilderScene({ backgroundContrast: Number(e.target.value) / 100 })}
+                />
+              </label>
+            </>
+          )}
 
           <label className="layout-panel__field">
             <span className="layout-panel__label">Upload Background</span>
             <input
               className="layout-panel__input"
               type="file"
-              accept=".png,.jpg,.jpeg,.webp"
+              accept=".png,.jpg,.jpeg,.webp,.mp4,.webm"
               onChange={(e) => onBuilderAssetUpload(e, "background")}
             />
           </label>
@@ -635,6 +764,9 @@ export function LayoutPanel({
           <button type="button" className="layout-panel__action" onClick={onAddLight}>
             Add Light
           </button>
+          <button type="button" className="layout-panel__action" onClick={onAddSmoke}>
+            Add Smoke
+          </button>
         </div>
       </LayoutPanelSection>
 
@@ -688,6 +820,16 @@ export function LayoutPanel({
                       <option value="backgroundLayer">Background</option>
                     </select>
                   </label>
+                  <label className="layout-panel__toggle">
+                    <input
+                      type="checkbox"
+                      checked={selectedLayoutSpriteLive.initiallyHidden ?? false}
+                      onChange={(e) =>
+                        controllerRef.current?.setSelectedLayoutSpriteInitiallyHidden(e.target.checked)
+                      }
+                    />
+                    <span>Initially Hidden (reveal slot)</span>
+                  </label>
                 </LayoutPanelSection>
 
                 <LayoutPanelSection title="Interaction">
@@ -732,6 +874,39 @@ export function LayoutPanel({
                         Edit Info Modal
                       </button>
                     </div>
+                  ) : null}
+
+                  {selectedLayoutSpriteInteraction?.clickable ? (
+                    <>
+                      <label className="layout-panel__field" style={{ marginTop: 4 }}>
+                        <span className="layout-panel__label">Spotify URL</span>
+                        <input
+                          className="layout-panel__input"
+                          type="text"
+                          placeholder="https://open.spotify.com/track/…"
+                          value={selectedLayoutSpriteInteraction?.spotifyUrl ?? ""}
+                          onChange={(e) =>
+                            controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                              spotifyUrl: e.target.value || undefined,
+                            })
+                          }
+                        />
+                      </label>
+                      <label className="layout-panel__field">
+                        <span className="layout-panel__label">YouTube URL</span>
+                        <input
+                          className="layout-panel__input"
+                          type="text"
+                          placeholder="https://youtube.com/watch?v=…"
+                          value={selectedLayoutSpriteInteraction?.youtubeUrl ?? ""}
+                          onChange={(e) =>
+                            controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                              youtubeUrl: e.target.value || undefined,
+                            })
+                          }
+                        />
+                      </label>
+                    </>
                   ) : null}
 
                   {selectedLayoutSpriteInteraction?.clickable && selectedLayoutSpriteInteraction?.hasDrawer ? (
@@ -833,6 +1008,82 @@ export function LayoutPanel({
                           ) : null}
                         </>
                       ) : null}
+
+                      <hr style={{ border: "none", borderTop: "1px solid var(--color-border,#333)", margin: "8px 0" }} />
+                      <label className="layout-panel__toggle">
+                        <input
+                          type="checkbox"
+                          checked={selectedLayoutSpriteInteraction?.hasYesNo ?? false}
+                          onChange={(e) =>
+                            controllerRef.current?.updateSelectedLayoutSpriteInteraction({ hasYesNo: e.target.checked || undefined })
+                          }
+                        />
+                        <span>Has Yes/No</span>
+                      </label>
+
+                      {selectedLayoutSpriteInteraction?.hasYesNo ? (
+                        <>
+                          <label className="layout-panel__field">
+                            <span className="layout-panel__label">Question</span>
+                            <textarea
+                              className="layout-panel__input"
+                              rows={2}
+                              value={selectedLayoutSpriteInteraction?.yesNoQuestion ?? ""}
+                              onChange={(e) =>
+                                controllerRef.current?.updateSelectedLayoutSpriteInteraction({ yesNoQuestion: e.target.value || undefined })
+                              }
+                              placeholder="e.g. Want to work together?"
+                            />
+                          </label>
+                          <label className="layout-panel__field">
+                            <span className="layout-panel__label">YES Action</span>
+                            <select
+                              className="layout-panel__input"
+                              value={selectedLayoutSpriteInteraction?.yesNoYesAction ?? "contact-form"}
+                              onChange={(e) =>
+                                controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                                  yesNoYesAction: e.target.value as "contact-form" | "go-to-scene",
+                                  yesNoYesScene: e.target.value === "contact-form" ? undefined : selectedLayoutSpriteInteraction?.yesNoYesScene,
+                                })
+                              }
+                            >
+                              <option value="contact-form">Open Contact Form</option>
+                              <option value="go-to-scene">Go to Scene</option>
+                            </select>
+                          </label>
+                          {(selectedLayoutSpriteInteraction?.yesNoYesAction ?? "contact-form") === "go-to-scene" ? (
+                            <label className="layout-panel__field">
+                              <span className="layout-panel__label">Scene</span>
+                              <select
+                                className="layout-panel__input"
+                                value={selectedLayoutSpriteInteraction?.yesNoYesScene ?? "__none__"}
+                                onChange={(e) =>
+                                  controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                                    yesNoYesScene: e.target.value === "__none__" ? undefined : e.target.value,
+                                  })
+                                }
+                              >
+                                <option value="__none__">Select scene…</option>
+                                {builderScenes.map((scene) => (
+                                  <option key={scene.id} value={scene.id}>{scene.label}</option>
+                                ))}
+                              </select>
+                            </label>
+                          ) : null}
+                          <label className="layout-panel__field">
+                            <span className="layout-panel__label">NO Message</span>
+                            <textarea
+                              className="layout-panel__input"
+                              rows={2}
+                              value={selectedLayoutSpriteInteraction?.yesNoNoMessage ?? ""}
+                              onChange={(e) =>
+                                controllerRef.current?.updateSelectedLayoutSpriteInteraction({ yesNoNoMessage: e.target.value || undefined })
+                              }
+                              placeholder="e.g. Maybe next time!"
+                            />
+                          </label>
+                        </>
+                      ) : null}
                     </>
                   ) : null}
 
@@ -896,6 +1147,132 @@ export function LayoutPanel({
                             </label>
                           ) : null}
                         </>
+                      ) : null}
+                    </>
+                  ) : null}
+
+                  {selectedLayoutSpriteInteraction?.clickable && !selectedLayoutSpriteInteraction?.collectible ? (
+                    <>
+                      <hr style={{ border: "none", borderTop: "1px solid var(--color-border,#333)", margin: "8px 0" }} />
+                      <span className="layout-panel__label">Multi-Slot Puzzle</span>
+
+                      {(selectedLayoutSpriteInteraction?.slots ?? []).map((slot: InteractionSlot, idx: number) => (
+                        <div key={slot.id} style={{ border: "1px solid var(--color-border,#333)", borderRadius: 4, padding: "6px 8px", marginBottom: 6 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                            <span className="layout-panel__label">Slot {idx + 1}</span>
+                            <button
+                              type="button"
+                              className="layout-panel__icon-btn layout-panel__icon-btn--danger"
+                              onClick={() => {
+                                const next = (selectedLayoutSpriteInteraction?.slots ?? []).filter((_: InteractionSlot, i: number) => i !== idx);
+                                controllerRef.current?.updateSelectedLayoutSpriteInteraction({ slots: next });
+                              }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          <label className="layout-panel__field">
+                            <span className="layout-panel__label">Accepts Item</span>
+                            <select
+                              className="layout-panel__input"
+                              value={slot.acceptsItemId ?? "__none__"}
+                              onChange={(e) => {
+                                const next = (selectedLayoutSpriteInteraction?.slots ?? []).map((s: InteractionSlot, i: number) =>
+                                  i === idx ? { ...s, acceptsItemId: e.target.value } : s
+                                );
+                                controllerRef.current?.updateSelectedLayoutSpriteInteraction({ slots: next });
+                              }}
+                            >
+                              <option value="__none__">Select item…</option>
+                              {collectibleItems.map((item) => (
+                                <option key={item.id} value={item.id}>{item.label}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="layout-panel__field">
+                            <span className="layout-panel__label">On Fill</span>
+                            <select
+                              className="layout-panel__input"
+                              value={slot.onFill ?? "reveal"}
+                              onChange={(e) => {
+                                const next = (selectedLayoutSpriteInteraction?.slots ?? []).map((s: InteractionSlot, i: number) =>
+                                  i === idx ? { ...s, onFill: e.target.value as "reveal" | "change" } : s
+                                );
+                                controllerRef.current?.updateSelectedLayoutSpriteInteraction({ slots: next });
+                              }}
+                            >
+                              <option value="reveal">Reveal (alpha 0→1)</option>
+                              <option value="change">Change texture</option>
+                            </select>
+                          </label>
+                          <label className="layout-panel__field">
+                            <span className="layout-panel__label">Target Sprite</span>
+                            <select
+                              className="layout-panel__input"
+                              value={slot.targetSpriteId ?? "__none__"}
+                              onChange={(e) => {
+                                const next = (selectedLayoutSpriteInteraction?.slots ?? []).map((s: InteractionSlot, i: number) =>
+                                  i === idx ? { ...s, targetSpriteId: e.target.value === "__none__" ? undefined : e.target.value } : s
+                                );
+                                controllerRef.current?.updateSelectedLayoutSpriteInteraction({ slots: next });
+                              }}
+                            >
+                              <option value="__none__">Select sprite…</option>
+                              {visibleLayoutSprites.map((sp) => (
+                                <option key={sp.id} value={sp.id}>{sp.id}</option>
+                              ))}
+                            </select>
+                          </label>
+                          {(slot.onFill ?? "reveal") === "change" ? (
+                            <label className="layout-panel__field">
+                              <span className="layout-panel__label">Changes To (src)</span>
+                              <input
+                                className="layout-panel__input"
+                                type="text"
+                                placeholder="/assets/scene/…webp"
+                                value={slot.changesToSrc ?? ""}
+                                onChange={(e) => {
+                                  const next = (selectedLayoutSpriteInteraction?.slots ?? []).map((s: InteractionSlot, i: number) =>
+                                    i === idx ? { ...s, changesToSrc: e.target.value || undefined } : s
+                                  );
+                                  controllerRef.current?.updateSelectedLayoutSpriteInteraction({ slots: next });
+                                }}
+                              />
+                            </label>
+                          ) : null}
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        className="layout-panel__action"
+                        onClick={() => {
+                          const newSlot: InteractionSlot = { id: `slot-${Date.now()}`, acceptsItemId: "" };
+                          const next = [...(selectedLayoutSpriteInteraction?.slots ?? []), newSlot];
+                          controllerRef.current?.updateSelectedLayoutSpriteInteraction({ slots: next });
+                        }}
+                      >
+                        + Add Slot
+                      </button>
+
+                      {(selectedLayoutSpriteInteraction?.slots ?? []).length > 0 && collectibleItems.length > 0 ? (
+                        <label className="layout-panel__field" style={{ marginTop: 6 }}>
+                          <span className="layout-panel__label">All Slots Reward Item</span>
+                          <select
+                            className="layout-panel__input"
+                            value={selectedLayoutSpriteInteraction?.slotsRewardItemId ?? "__none__"}
+                            onChange={(e) =>
+                              controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                                slotsRewardItemId: e.target.value === "__none__" ? undefined : e.target.value,
+                              })
+                            }
+                          >
+                            <option value="__none__">None</option>
+                            {collectibleItems.map((item) => (
+                              <option key={item.id} value={item.id}>{item.label}</option>
+                            ))}
+                          </select>
+                        </label>
                       ) : null}
                     </>
                   ) : null}
@@ -976,6 +1353,20 @@ export function LayoutPanel({
                     </div>
                     {selectedLayoutSpriteShadow?.enabled ? (
                       <>
+                        <div className="layout-panel__toggle-group">
+                          <label className="layout-panel__toggle">
+                            <input
+                              type="checkbox"
+                              checked={selectedLayoutSpriteShadow?.flipY ?? false}
+                              onChange={(e) =>
+                                controllerRef.current?.updateSelectedLayoutSpriteShadow({
+                                  flipY: e.target.checked,
+                                })
+                              }
+                            />
+                            <span>Mirror Shadow</span>
+                          </label>
+                        </div>
                         <label className="layout-panel__field">
                           <span className="layout-panel__label">
                             Angle {(selectedLayoutSpriteShadow?.angle ?? 0).toFixed(2)}
@@ -1030,13 +1421,78 @@ export function LayoutPanel({
                             }
                           />
                         </label>
+                        <label className="layout-panel__field">
+                          <span className="layout-panel__label">
+                            Offset X {selectedLayoutSpriteShadow?.offsetX ?? 0}
+                          </span>
+                          <input
+                            className="layout-panel__input"
+                            type="range"
+                            min={-300}
+                            max={300}
+                            step={1}
+                            value={selectedLayoutSpriteShadow?.offsetX ?? 0}
+                            onChange={(e) =>
+                              controllerRef.current?.updateSelectedLayoutSpriteShadow({
+                                offsetX: Number(e.target.value),
+                              })
+                            }
+                          />
+                        </label>
+                        <label className="layout-panel__field">
+                          <span className="layout-panel__label">
+                            Offset Y {selectedLayoutSpriteShadow?.offsetY ?? 0}
+                          </span>
+                          <input
+                            className="layout-panel__input"
+                            type="range"
+                            min={-300}
+                            max={300}
+                            step={1}
+                            value={selectedLayoutSpriteShadow?.offsetY ?? 0}
+                            onChange={(e) =>
+                              controllerRef.current?.updateSelectedLayoutSpriteShadow({
+                                offsetY: Number(e.target.value),
+                              })
+                            }
+                          />
+                        </label>
                       </>
                     ) : null}
                   </LayoutPanelSection>
                 ) : null}
 
-                {selectedLayoutSpriteLive?.runtimeType === "statue" ? (
+                {(["statue", "wind-turbine", "working-desk", "vinyl-turning", "two-character-fight", "small-breath-and-bre", "character-slightly-t", "animate-only-subtle", "dont-change-the-ima", "the-hands-emerge-fro", "character-idle"] as const).includes(selectedLayoutSpriteLive?.runtimeType as never) ? (
                   <LayoutPanelSection title="Animation" defaultOpen>
+                    <label className="layout-panel__field">
+                      <span className="layout-panel__label">Animation Control</span>
+                      <input
+                        type="checkbox"
+                        checked={selectedLayoutSpriteLive?.animControlEnabled ?? false}
+                        onChange={(e) =>
+                          controllerRef.current?.updateSelectedLayoutSpriteAnimControlEnabled(e.target.checked)
+                        }
+                      />
+                    </label>
+                    {collectibleItems.length > 0 && (
+                      <label className="layout-panel__field">
+                        <span className="layout-panel__label">Item Trigger</span>
+                        <select
+                          className="layout-panel__select"
+                          value={selectedLayoutSpriteLive?.interaction?.animTriggerItemId ?? ""}
+                          onChange={(e) =>
+                            controllerRef.current?.updateSelectedLayoutSpriteInteraction({
+                              animTriggerItemId: e.target.value || undefined,
+                            })
+                          }
+                        >
+                          <option value="">— none —</option>
+                          {collectibleItems.map((item) => (
+                            <option key={item.id} value={item.id}>{item.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
                     <label className="layout-panel__field">
                       <span className="layout-panel__label">
                         Speed {(selectedLayoutSpriteLive?.animSpeed ?? 0.3).toFixed(2)}
@@ -1358,6 +1814,52 @@ export function LayoutPanel({
                         }}
                       >
                         Remove Light
+                      </button>
+                    </div>
+                  </LayoutPanelSection>
+                ) : null}
+
+                {/* Runtime Smoke Settings */}
+                {selectedLayoutSpriteLive?.runtimeType === "smoke" ? (
+                  <LayoutPanelSection title="Smoke Settings" defaultOpen>
+                    {(
+                      [
+                        ["Scale", "scale", 0.2, 3, 0.01],
+                        ["Density", "density", 0.1, 3, 0.01],
+                        ["Drift", "drift", 0.1, 3, 0.01],
+                        ["Rise", "rise", 0.1, 3, 0.01],
+                        ["Speed", "speed", 0.1, 3, 0.01],
+                      ] as [string, keyof SceneSpriteRuntimeSmokeConfig, number, number, number][]
+                    ).map(([label, field, min, max, step]) => (
+                      <label key={field} className="layout-panel__field">
+                        <span className="layout-panel__label">
+                          {label} {((selectedLayoutSpriteLive?.smokeControls?.[field] ?? (field === "scale" ? 1 : field === "density" ? 1.42 : field === "drift" ? 0.74 : 1)) as number).toFixed(2)}
+                        </span>
+                        <input
+                          className="layout-panel__input"
+                          type="range"
+                          min={min}
+                          max={max}
+                          step={step}
+                          value={(selectedLayoutSpriteLive?.smokeControls?.[field] ?? (field === "scale" ? 1 : field === "density" ? 1.42 : field === "drift" ? 0.74 : 1)) as number}
+                          onChange={(e) =>
+                            controllerRef.current?.updateSelectedLayoutSpriteSmokeControls({
+                              [field]: Number(e.target.value),
+                            } as Partial<SceneSpriteRuntimeSmokeConfig>)
+                          }
+                        />
+                      </label>
+                    ))}
+                    <div className="layout-panel__actions">
+                      <button
+                        type="button"
+                        className="layout-panel__action"
+                        onClick={() => {
+                          controllerRef.current?.deleteSelectedLayoutSprite();
+                          setSelectedLayoutSpriteId(null);
+                        }}
+                      >
+                        Remove Smoke
                       </button>
                     </div>
                   </LayoutPanelSection>

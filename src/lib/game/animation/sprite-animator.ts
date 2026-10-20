@@ -7,6 +7,8 @@ export class SpriteAnimator {
   private frameIndex = 0;
   private targetWidth: number;
   private targetHeight: number;
+  /** The original full clip before any stop-frame trimming. */
+  baseClip: AnimationClip | null = null;
 
   constructor(private readonly sprite: Sprite) {
     this.targetWidth = sprite.width;
@@ -24,7 +26,13 @@ export class SpriteAnimator {
     if (this.activeClip?.id === clip.id) {
       return;
     }
+    this.activeClip = clip;
+    this.elapsedInFrame = 0;
+    this.frameIndex = 0;
+    this.applyCurrentFrame();
+  }
 
+  forcePlay(clip: AnimationClip) {
     this.activeClip = clip;
     this.elapsedInFrame = 0;
     this.frameIndex = 0;

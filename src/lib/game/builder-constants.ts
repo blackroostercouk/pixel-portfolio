@@ -1,7 +1,7 @@
 export const BUILDER_SCENE_SELECT_PREFIX = "builder:";
 
 export type BuilderAssetType = "prop" | "animated";
-export type BuilderAnimatedPreset = "main-character" | "character-idle" | "cat" | "wind-turbine" | "statue";
+export type BuilderAnimatedPreset = "main-character" | "character-idle" | "cat" | "wind-turbine" | "statue" | "working-desk" | "vinyl-turning" | "two-character-fight" | "small-breath-and-bre" | "character-slightly-t" | "animate-only-subtle" | "dont-change-the-ima" | "the-hands-emerge-fro" | "typing-gently" | "webflow-typing";
 
 export const BUILDER_ANIMATED_PRESET_OPTIONS: Array<{ id: BuilderAnimatedPreset; label: string }> = [
   { id: "main-character", label: "Main Character" },
@@ -9,6 +9,16 @@ export const BUILDER_ANIMATED_PRESET_OPTIONS: Array<{ id: BuilderAnimatedPreset;
   { id: "cat", label: "Cat" },
   { id: "wind-turbine", label: "Wind Turbine" },
   { id: "statue", label: "Statue" },
+  { id: "working-desk", label: "Working Desk" },
+  { id: "vinyl-turning", label: "Vinyl Turning" },
+  { id: "two-character-fight", label: "Two Character Fight" },
+  { id: "small-breath-and-bre", label: "Small Breath & Bre" },
+  { id: "character-slightly-t", label: "Character Slightly T" },
+  { id: "animate-only-subtle", label: "Animate Only Subtle" },
+  { id: "dont-change-the-ima", label: "Don't Change The Ima" },
+  { id: "the-hands-emerge-fro", label: "The Hands Emerge" },
+  { id: "typing-gently", label: "Typing Gently" },
+  { id: "webflow-typing", label: "Webflow Typing" },
 ];
 
 export const LIGHT_PARTICLE_PRESETS = {

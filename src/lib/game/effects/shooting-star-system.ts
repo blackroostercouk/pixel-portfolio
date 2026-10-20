@@ -85,6 +85,16 @@ export class ShootingStarSystem implements UpdatableEffect {
     }
   }
 
+  setEnabled(enabled: boolean) {
+    this.container.visible = enabled;
+    if (!enabled) {
+      this.isActive = false;
+      this.star.alpha = 0;
+      this.trail.alpha = 0;
+      this.waitMs = randomBetween(STAR_SPAWN_MIN_MS, STAR_SPAWN_MAX_MS);
+    }
+  }
+
   destroy() {
     this.container.destroy({ children: true });
   }

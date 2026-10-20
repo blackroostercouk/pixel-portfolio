@@ -4,7 +4,8 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { sceneAssetsManifest } from "@/lib/game/asset-manifest";
 
 const BUCKET = "scene-builder";
-const ALLOWED_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp"]);
+const ALLOWED_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm"]);
+const VIDEO_EXTENSIONS = new Set([".mp4", ".webm"]);
 const BUILT_IN_BACKGROUND_ALIASES = new Set([
   "background",
   "backgroundScene2",
@@ -67,7 +68,7 @@ function collectBuiltInSceneAssets(kind: "background" | "item") {
     .sort((a, b) => a.localeCompare(b));
 }
 
-async function listStorageImages(folder: string): Promise<string[]> {
+async function listStorageAssets(folder: string): Promise<string[]> {
   const { data, error } = await supabaseAdmin.storage.from(BUCKET).list(folder, {
     limit: 1000,
     sortBy: { column: "name", order: "asc" },
@@ -86,8 +87,8 @@ async function listStorageImages(folder: string): Promise<string[]> {
 
 export async function GET() {
   const [uploadedBackgrounds, uploadedItems] = await Promise.all([
-    listStorageImages("backgrounds"),
-    listStorageImages("items"),
+    listStorageAssets("backgrounds"),
+    listStorageAssets("items"),
   ]);
 
   const backgrounds = Array.from(
@@ -119,23 +120,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unsupported file type." }, { status: 400 });
   }
 
+  const isVideo = VIDEO_EXTENSIONS.has(extension);
   const inputBuffer = Buffer.from(await file.arrayBuffer());
-  const webpBuffer = await sharp(inputBuffer).webp({ quality: 94 }).toBuffer();
   const fileStem = `${sanitizeBaseName(file.name)}-${Date.now()}`;
   const folder = kind === "background" ? "backgrounds" : "items";
-  const storagePath = `${folder}/${fileStem}.webp`;
+
+  let uploadBuffer: Buffer;
+  let contentType: string;
+  let storagePath: string;
+
+  if (isVideo) {
+    uploadBuffer = inputBuffer;
+    contentType = extension === ".webm" ? "video/webm" : "video/mp4";
+    storagePath = `${folder}/${fileStem}${extension}`;
+  } else {
+    uploadBuffer = await sharp(inputBuffer).webp({ quality: 94 }).toBuffer();
+    contentType = "image/webp";
+    storagePath = `${folder}/${fileStem}.webp`;
+  }
 
   const { error: uploadError } = await supabaseAdmin.storage
     .from(BUCKET)
-    .upload(storagePath, webpBuffer, { contentType: "image/webp", upsert: false });
+    .upload(storagePath, uploadBuffer, { contentType, upsert: false });
 
   if (uploadError) {
     return NextResponse.json({ error: uploadError.message }, { status: 500 });
   }
 
-  const {
-    data: { publicUrl },
-  } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(storagePath);
+  const { data: { publicUrl } } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(storagePath);
 
   return NextResponse.json({ src: publicUrl, kind });
 }

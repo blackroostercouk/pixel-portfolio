@@ -21,10 +21,13 @@ import { CollectEditor } from "@/components/game-ui/collect-editor";
 import { CollectibleItemsModal } from "@/components/game-ui/collectible-items-modal";
 import { GameModal } from "@/components/game-ui/game-modal";
 import type { GameId } from "@/components/game-ui/game-modal";
+import { SpotifyPlayer } from "@/components/game-ui/spotify-player";
+import { YouTubePlayer } from "@/components/game-ui/youtube-player";
 import { SceneLoadingScreen } from "@/components/game-ui/scene-loading-screen";
 import { useAuth } from "@/lib/auth/use-auth";
 import { ItemInfoModal } from "@/components/game-ui/item-info-modal";
 import { SceneMapOverlay } from "@/components/game-ui/scene-map-overlay";
+import { YesNoModal } from "@/components/game-ui/yes-no-modal";
 import { sceneRegistry } from "@/lib/game/scene-registry";
 import {
   BUILDER_SCENE_SELECT_PREFIX,
@@ -36,8 +39,30 @@ import type {
   SceneInfoModalConfig,
   SceneDrawerConfig,
   SceneInfoModalStageId,
+  InteractionSlot,
 } from "@/lib/game/types";
+
+const PUZZLE_SLOTS_KEY = "puzzle-slots";
+
+function getPuzzleSlots(): Record<string, true> {
+  try {
+    return JSON.parse(localStorage.getItem(PUZZLE_SLOTS_KEY) ?? "{}") as Record<string, true>;
+  } catch {
+    return {};
+  }
+}
+
+function setPuzzleSlot(key: string) {
+  try {
+    const current = getPuzzleSlots();
+    current[key] = true;
+    localStorage.setItem(PUZZLE_SLOTS_KEY, JSON.stringify(current));
+  } catch {
+    // ignore
+  }
+}
 import type { SceneId } from "@/lib/game/core/game-state";
+
 
 export function PixelScene() {
   const game = useGameSession();
@@ -56,6 +81,11 @@ export function PixelScene() {
   const [isReady, setIsReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [isRainEnabled, setIsRainEnabled] = useState(true);
+  const isRainEnabledRef = useRef(true);
+  isRainEnabledRef.current = isRainEnabled;
+  const [isStarsEnabled, setIsStarsEnabled] = useState(true);
+  const isStarsEnabledRef = useRef(true);
+  isStarsEnabledRef.current = isStarsEnabled;
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
   const [isLightingEnabled, setIsLightingEnabled] = useState(true);
   const [isLayoutModeEnabled, setIsLayoutModeEnabled] = useState(false);
@@ -65,6 +95,12 @@ export function PixelScene() {
   const [isCollectEditorOpen, setIsCollectEditorOpen] = useState(false);
   const [isItemsRegistryOpen, setIsItemsRegistryOpen] = useState(false);
   const [activeGame, setActiveGame] = useState<{ gameId: GameId; spriteId: string } | null>(null);
+  const [activeSpotifyUrl, setActiveSpotifyUrl] = useState<string | null>(null);
+  const setActiveSpotifyUrlRef = useRef(setActiveSpotifyUrl);
+  setActiveSpotifyUrlRef.current = setActiveSpotifyUrl;
+  const [activeYouTubeUrl, setActiveYouTubeUrl] = useState<string | null>(null);
+  const setActiveYouTubeUrlRef = useRef(setActiveYouTubeUrl);
+  setActiveYouTubeUrlRef.current = setActiveYouTubeUrl;
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [acquiredItem, setAcquiredItem] = useState<{ label: string; iconSrc: string } | null>(null);
   const acquiredItemTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,6 +116,7 @@ export function PixelScene() {
   const [isUploadingInfoImage, setIsUploadingInfoImage] = useState(false);
   const [isUploadingCollectibleImage, setIsUploadingCollectibleImage] = useState(false);
   const [isUploadingCollectIcon, setIsUploadingCollectIcon] = useState(false);
+  const [activeYesNoSpriteId, setActiveYesNoSpriteId] = useState<string | null>(null);
 
   const currentScene = sceneRegistry[game.state.currentSceneId];
   const activeItemInfo =
@@ -103,6 +140,10 @@ export function PixelScene() {
     layout.layoutSpritesWithSmoke.find((s) => s.id === layout.selectedLayoutSpriteId) ??
     null;
   const isSmokeSelected = layout.selectedLayoutSpriteId === "scene3-smoke";
+  const isRuntimeSmokeSelected =
+    selectedLayoutSprite && "runtimeType" in selectedLayoutSprite
+      ? selectedLayoutSprite.runtimeType === "smoke"
+      : false;
   const selectedLayoutSpriteLive =
     layout.selectedLayoutSpriteId && !isSmokeSelected
       ? (controllerRef.current?.getSelectedLayoutSpriteSnapshot() ?? selectedLayoutSprite)
@@ -244,7 +285,13 @@ export function PixelScene() {
     const controller = new PixelSceneController({
       sceneId: currentScene.id,
       onLoadProgress: (p) => setLoadProgress(p),
-      runtimeSceneBackgroundSrc: activeBuilderScene?.backgroundSrc ?? null,
+      runtimeSceneBackgroundSrc: currentScene.id === "scene-builder"
+        ? (activeBuilderScene?.backgroundLayers?.length ? null : (activeBuilderScene?.backgroundSrc ?? null))
+        : undefined,
+      runtimeSceneBackgroundLayers: activeBuilderScene?.backgroundLayers?.length ? activeBuilderScene.backgroundLayers : undefined,
+      runtimeSceneBackgroundBrightness: activeBuilderScene?.backgroundBrightness,
+      runtimeSceneBackgroundContrast: activeBuilderScene?.backgroundContrast,
+      runtimeSceneBackgroundPlaybackRate: activeBuilderScene?.backgroundPlaybackRate,
       runtimeSceneSprites: activeBuilderScene?.sprites.map((s) => ({ ...s, layer: s.layer ?? "environmentLayer" })) ?? [],
       onActionMenuAction: (objectId, actionId) => {
         if (actionId.endsWith("-generic-collect")) {
@@ -307,6 +354,18 @@ export function PixelScene() {
             setActiveGameRef.current({ gameId, spriteId: objectId });
             return "";
           }
+          if (snap?.interaction?.spotifyUrl && !selectedInventoryItemIdRef.current) {
+            setActiveSpotifyUrlRef.current(snap.interaction.spotifyUrl);
+            return "";
+          }
+          if (snap?.interaction?.youtubeUrl && !selectedInventoryItemIdRef.current) {
+            setActiveYouTubeUrlRef.current(snap.interaction.youtubeUrl);
+            return "";
+          }
+          if (snap?.interaction?.hasYesNo && !selectedInventoryItemIdRef.current) {
+            setActiveYesNoSpriteId(objectId);
+            return "";
+          }
         }
 
         const selectedItemId = selectedInventoryItemIdRef.current;
@@ -315,16 +374,76 @@ export function PixelScene() {
         // Check dynamic inventory items (collected layout sprites)
         const dynamicItem = gameRef.current.state.dynamicInventoryItems?.find((d) => d.id === selectedItemId);
         if (dynamicItem) {
-          // ── NEW SIMPLE PATH: target sprite declares which item it accepts ──
           const targetSnap =
             layout.latestLayoutSpritesRef.current.find((s) => s.id === objectId) ??
             controllerRef.current?.getLayoutSpriteSnapshotById(objectId);
-          const accepted = targetSnap?.interaction?.acceptedCollectibleItemId;
-          // registryItemId may be unset if item was collected before givesCollectibleItemId was configured;
-          // fall back to matching by label so legacy-collected items still work.
+
+          // ── SLOT PUZZLE PATH ──────────────────────────────────────────────
+          const slots = targetSnap?.interaction?.slots;
           const effectiveRegistryId =
             dynamicItem.registryItemId ??
             layout.collectibleItemsRef.current.find((r) => r.label === dynamicItem.label)?.id;
+
+          // ── ANIM TRIGGER ITEM PATH ───────────────────────────────────────
+          const animTriggerItemId = targetSnap?.interaction?.animTriggerItemId;
+          let animTriggeredByItem = false;
+          if (animTriggerItemId && effectiveRegistryId && animTriggerItemId === effectiveRegistryId) {
+            controllerRef.current?.triggerSpriteClickAnimation(objectId);
+            animTriggeredByItem = true;
+            // Don't return — fall through so acceptedCollectibleItemId / give-item paths still run
+          }
+          // ── END ANIM TRIGGER ITEM PATH ────────────────────────────────────
+
+          if (slots && slots.length > 0 && effectiveRegistryId) {
+            const filledSlots = getPuzzleSlots();
+            const matchingSlot = slots.find((slot: InteractionSlot) => {
+              if (slot.acceptsItemId !== effectiveRegistryId) return false;
+              return !filledSlots[`${objectId}:${slot.id}`];
+            });
+
+            if (matchingSlot) {
+              setPuzzleSlot(`${objectId}:${matchingSlot.id}`);
+              gameRef.current.removeDynamicInventoryItem(selectedItemId);
+
+              const targetId = matchingSlot.targetSpriteId ?? matchingSlot.revealsSpriteId;
+              const mode = matchingSlot.onFill ?? "reveal";
+              if (targetId) {
+                if (mode === "reveal") {
+                  controllerRef.current?.showLayoutSprite(targetId, true);
+                } else if (mode === "change" && matchingSlot.changesToSrc) {
+                  void controllerRef.current?.changeLayoutSpriteTexture(targetId, matchingSlot.changesToSrc);
+                }
+              }
+
+              const freshFilled = getPuzzleSlots();
+              const allFilled = slots.every((slot: InteractionSlot) => freshFilled[`${objectId}:${slot.id}`]);
+              if (allFilled) {
+                const rewardItemId = targetSnap?.interaction?.slotsRewardItemId;
+                if (rewardItemId) {
+                  const rewardItem = layout.collectibleItemsRef.current.find((r) => r.id === rewardItemId);
+                  if (rewardItem) {
+                    gameRef.current.addDynamicInventoryItem({
+                      id: `slot-reward-${objectId}`,
+                      label: rewardItem.label,
+                      iconSrc: rewardItem.iconSrc,
+                      registryItemId: rewardItem.id,
+                      consumeOnUse: rewardItem.consumeOnUse,
+                    });
+                    if (acquiredItemTimerRef.current) clearTimeout(acquiredItemTimerRef.current);
+                    setAcquiredItemRef.current({ label: rewardItem.label, iconSrc: rewardItem.iconSrc });
+                    acquiredItemTimerRef.current = setTimeout(() => {
+                      setAcquiredItemRef.current(null);
+                      acquiredItemTimerRef.current = null;
+                    }, 3000);
+                  }
+                }
+              }
+              return "";
+            }
+          }
+          // ── END SLOT PUZZLE PATH ─────────────────────────────────────────
+
+          const accepted = targetSnap?.interaction?.acceptedCollectibleItemId;
           if (accepted && accepted === effectiveRegistryId) {
             const onAcceptAction = targetSnap!.interaction!.onAcceptAction ?? "openModal";
             const registryItem = layout.collectibleItemsRef.current.find((r) => r.id === accepted);
@@ -449,6 +568,7 @@ export function PixelScene() {
             // openModal: return null so normal click fires and opens the modal
             return null;
           }
+          if (animTriggeredByItem) return "";
           const targetSnapshot =
             layout.latestLayoutSpritesRef.current.find((s) => s.id === objectId);
           const targetLabel = targetSnapshot?.interaction?.infoTitle ?? objectId;
@@ -494,7 +614,8 @@ export function PixelScene() {
     const mountScene = async () => {
       await controller.mount(host);
       controller.syncSceneState(gameRef.current.state);
-      controller.setRainEnabled(isRainEnabled);
+      controller.setRainEnabled(isRainEnabledRef.current);
+      controller.setShootingStarsEnabled(isStarsEnabledRef.current);
       controller.setLightingEnabled(isLightingEnabled);
       controller.setLayoutMode(isLayoutModeEnabled);
       host.focus();
@@ -516,6 +637,11 @@ export function PixelScene() {
   }, [
     currentScene.id,
     layout.activeBuilderScene?.backgroundSrc,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    JSON.stringify(layout.activeBuilderScene?.backgroundLayers),
+    layout.activeBuilderScene?.backgroundBrightness,
+    layout.activeBuilderScene?.backgroundContrast,
+    layout.activeBuilderScene?.backgroundPlaybackRate,
     layout.activeBuilderSceneId,
     layout.builderSceneRenderVersion,
     layout.sceneOverrideRenderVersion,
@@ -528,6 +654,57 @@ export function PixelScene() {
   useEffect(() => {
     controllerRef.current?.setRainEnabled(isRainEnabled);
   }, [isRainEnabled]);
+
+  useEffect(() => {
+    controllerRef.current?.setShootingStarsEnabled(isStarsEnabled);
+  }, [isStarsEnabled]);
+
+  useEffect(() => {
+    if (currentScene.id === "scene-builder" && layout.activeBuilderScene) {
+      setIsRainEnabled(layout.activeBuilderScene.rainEnabled ?? true);
+      setIsStarsEnabled(layout.activeBuilderScene.starsEnabled ?? true);
+    } else if (currentScene.id !== "scene-builder") {
+      setIsRainEnabled(true);
+      setIsStarsEnabled(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout.activeBuilderSceneId, currentScene.id]);
+
+  // Hide reveal sprites whose slot hasn't been filled yet on scene mount
+  useEffect(() => {
+    if (!isReady) return;
+
+    const applySlotVisibility = () => {
+      const controller = controllerRef.current;
+      if (!controller) return;
+      // Don't hide in layout edit mode — user needs to see and select them
+      if (controller.isInLayoutMode) return;
+      const allSprites = controller.getLayoutSnapshot();
+      const filledSlots = getPuzzleSlots();
+      for (const snap of allSprites) {
+        const slots = snap.interaction?.slots;
+        if (!slots || slots.length === 0) continue;
+        for (const slot of slots) {
+          const targetId = slot.targetSpriteId ?? slot.revealsSpriteId;
+          if (!targetId) continue;
+          const mode = slot.onFill ?? "reveal";
+          if (mode !== "reveal") continue;
+          const isFilled = !!filledSlots[`${snap.id}:${slot.id}`];
+          if (isFilled) {
+            controller.showLayoutSprite(targetId);
+          } else {
+            controller.hideLayoutSprite(targetId);
+          }
+        }
+      }
+    };
+
+    // Run immediately and again after Pixi's first render tick
+    applySlotVisibility();
+    const raf = requestAnimationFrame(applySlotVisibility);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, isLayoutModeEnabled]);
 
   useEffect(() => {
     try {
@@ -796,8 +973,20 @@ export function PixelScene() {
             controllerRef={controllerRef}
             isLightingEnabled={isLightingEnabled}
             isRainEnabled={isRainEnabled}
+            isStarsEnabled={isStarsEnabled}
             onLightingChange={setIsLightingEnabled}
-            onRainChange={setIsRainEnabled}
+            onRainChange={(value) => {
+              setIsRainEnabled(value);
+              if (layout.activeBuilderScene) {
+                layout.updateActiveBuilderScene({ rainEnabled: value });
+              }
+            }}
+            onStarsChange={(value) => {
+              setIsStarsEnabled(value);
+              if (layout.activeBuilderScene) {
+                layout.updateActiveBuilderScene({ starsEnabled: value });
+              }
+            }}
             currentSceneId={currentScene.id}
             layoutSaveState={layout.layoutSaveState}
             onCopyJson={() => void layout.handleCopyLayoutJson()}
@@ -857,6 +1046,7 @@ export function PixelScene() {
             onBuilderAssetUpload={layout.handleBuilderAssetUpload}
             onAddItemToScene={() => void layout.addBuilderItemToScene()}
             onAddLight={() => void layout.addRuntimeLightToScene()}
+            onAddSmoke={() => void layout.addRuntimeSmokeToScene()}
             collectibleItems={layout.collectibleItems}
             onOpenInfoEditor={() => setIsInfoEditorOpen(true)}
             onOpenDrawerEditor={() => setIsDrawerEditorOpen(true)}
@@ -869,6 +1059,17 @@ export function PixelScene() {
           ref={hostRef}
           className={`scene-canvas-host${isReady ? " is-ready" : ""}`}
           tabIndex={0}
+          onKeyDown={(e) => {
+            const step = e.shiftKey ? 10 : 1;
+            let dx = 0, dy = 0;
+            if (e.key === "ArrowLeft") dx = -step;
+            else if (e.key === "ArrowRight") dx = step;
+            else if (e.key === "ArrowUp") dy = -step;
+            else if (e.key === "ArrowDown") dy = step;
+            else return;
+            e.preventDefault();
+            controllerRef.current?.nudgeSelectedLayoutSprite(dx, dy);
+          }}
         />
 
         <SceneLoadingScreen isVisible={!isReady} progress={loadProgress} />
@@ -1144,6 +1345,44 @@ export function PixelScene() {
         />
       ) : null}
 
+      {activeSpotifyUrl ? (
+        <SpotifyPlayer url={activeSpotifyUrl} onClose={() => setActiveSpotifyUrl(null)} />
+      ) : null}
+
+      {activeYouTubeUrl ? (
+        <YouTubePlayer url={activeYouTubeUrl} onClose={() => setActiveYouTubeUrl(null)} />
+      ) : null}
+
+      {activeYesNoSpriteId ? (() => {
+        const snap =
+          layout.latestLayoutSpritesRef.current.find((s) => s.id === activeYesNoSpriteId) ??
+          controllerRef.current?.getLayoutSpriteSnapshotById(activeYesNoSpriteId);
+        const ix = snap?.interaction;
+        if (!ix?.hasYesNo) return null;
+        const yesScene = ix.yesNoYesScene
+          ? layout.builderScenes.find((s) => s.id === ix.yesNoYesScene)
+          : undefined;
+        return (
+          <YesNoModal
+            question={ix.yesNoQuestion ?? "Want to proceed?"}
+            yesAction={ix.yesNoYesAction ?? "contact-form"}
+            yesSceneLabel={yesScene?.label}
+            noMessage={ix.yesNoNoMessage}
+            onYesGoToScene={() => {
+              if (ix.yesNoYesScene) {
+                layout.setActiveBuilderSceneId(ix.yesNoYesScene);
+                layout.setSelectedLayoutSpriteId(null);
+                game.setScene("scene-builder");
+              }
+            }}
+            onNo={(message) => {
+              controllerRef.current?.showCharacterBubble(message);
+            }}
+            onClose={() => setActiveYesNoSpriteId(null)}
+          />
+        );
+      })() : null}
+
       {layout.layoutSaveLabel ? (
         <div
           className={`layout-toast layout-toast--${layout.layoutSaveState} font-pixel`}
@@ -1162,9 +1401,10 @@ export function PixelScene() {
             handleSceneSelectChange(layout.defaultSceneOptionValue);
           } else {
             const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-            const match = layout.builderScenes.find(
-              (scene) => normalize(scene.label) === normalize(islandId)
-            );
+            const normalizedIsland = normalize(islandId);
+            const match =
+              layout.builderScenes.find((scene) => normalize(scene.label) === normalizedIsland) ??
+              layout.builderScenes.find((scene) => normalize(scene.label).includes(normalizedIsland));
             if (match) {
               layout.setActiveBuilderSceneId(match.id);
               layout.setSelectedLayoutSpriteId(null);

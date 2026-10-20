@@ -68,13 +68,17 @@ export type SceneAssetId =
   | "sign"
   | "ufo"
   | "statue"
+  | "workingDesk"
+  | "vinylTurning"
   | "logo"
   | "bubble"
   | "bubbleMouse"
   | "infoIcon"
   | "collectIcon"
   | "character"
-  | "cat";
+  | "cat"
+  | "typingGently"
+  | "webflowTyping";
 
 export type SceneActionIconKind = "info" | "collect";
 
@@ -147,6 +151,9 @@ export type SceneSpriteProjectionShadowConfig = {
   angle?: number;
   length?: number;
   alpha?: number;
+  flipY?: boolean;
+  offsetX?: number;
+  offsetY?: number;
 };
 
 export type SceneSpriteParticleConfig = {
@@ -174,6 +181,16 @@ export type CollectibleItemDefinition = {
   consumeOnUse?: boolean;
 };
 
+export type InteractionSlot = {
+  id: string;
+  acceptsItemId: string;
+  onFill?: "reveal" | "change"; // reveal: alpha 0→1 | change: swap texture
+  targetSpriteId?: string;      // sprite to affect (both modes)
+  changesToSrc?: string;        // change mode: new texture src
+  /** @deprecated use targetSpriteId */
+  revealsSpriteId?: string;
+};
+
 export type SceneSpriteInteractionConfig = {
   clickable?: boolean;
   hasInfo?: boolean;
@@ -198,6 +215,9 @@ export type SceneSpriteInteractionConfig = {
   acceptedCollectibleItemId?: string;    // target sprite → which registry item unlocks it
   onAcceptAction?: "openModal" | "giveCollectible";
   onAcceptGivesItemId?: string;          // if giveCollectible, which registry item to give
+  // Multi-slot puzzle system:
+  slots?: InteractionSlot[];
+  slotsRewardItemId?: string;             // registry item to give when ALL slots are filled
   // Mini-game interaction:
   hasGame?: boolean;
   gameId?: string;                       // which game to open ("sliding-puzzle")
@@ -205,12 +225,20 @@ export type SceneSpriteInteractionConfig = {
   onGameWinItemId?: string;              // registry item to give on win
   clickAnimateFrames?: string[];
   clickAnimateFrameMs?: number;
+  animTriggerItemId?: string; // registry item id that also triggers the click animation
+  hasYesNo?: boolean;
+  yesNoQuestion?: string;
+  yesNoYesAction?: "contact-form" | "go-to-scene";
+  yesNoYesScene?: string;
+  yesNoNoMessage?: string;
   bubbleMessage?: string;
   infoTitle?: string;
   infoDescription?: string;
   infoImageSrc?: string;
   infoModal?: SceneInfoModalConfig;
   drawer?: SceneDrawerConfig;
+  spotifyUrl?: string;
+  youtubeUrl?: string;
 };
 
 export type SceneActionIconConfig = {
@@ -253,8 +281,19 @@ export type SceneRuntimeSpriteType =
   | "character-idle"
   | "cat"
   | "light"
+  | "smoke"
   | "wind-turbine"
-  | "statue";
+  | "statue"
+  | "working-desk"
+  | "vinyl-turning"
+  | "two-character-fight"
+  | "small-breath-and-bre"
+  | "character-slightly-t"
+  | "animate-only-subtle"
+  | "dont-change-the-ima"
+  | "the-hands-emerge-fro"
+  | "typing-gently"
+  | "webflow-typing";
 
 export type SceneSpriteConfig = {
   id: string;
@@ -282,9 +321,20 @@ export type SceneSpriteConfig = {
   light?: SceneSpriteLightConfig;
   particles?: SceneSpriteParticleConfig;
   shadow?: SceneSpriteProjectionShadowConfig;
+  smokeControls?: SceneSpriteRuntimeSmokeConfig;
+  initiallyHidden?: boolean;
   animSpeed?: number;
   animStopFrame?: number;
   animClickFrame?: number;
+  animControlEnabled?: boolean;
+};
+
+export type SceneSpriteRuntimeSmokeConfig = {
+  density?: number;
+  drift?: number;
+  rise?: number;
+  speed?: number;
+  scale?: number;
 };
 
 export type LayoutSpriteSnapshot = {
@@ -313,9 +363,12 @@ export type LayoutSpriteSnapshot = {
   light?: SceneSpriteLightConfig;
   particles?: SceneSpriteParticleConfig;
   shadow?: SceneSpriteProjectionShadowConfig;
+  smokeControls?: SceneSpriteRuntimeSmokeConfig;
+  initiallyHidden?: boolean;
   animSpeed?: number;
   animStopFrame?: number;
   animClickFrame?: number;
+  animControlEnabled?: boolean;
 };
 
 export type SceneThreeSmokeControls = {
